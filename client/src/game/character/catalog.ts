@@ -12,10 +12,15 @@ export const DEMO_EQUIPMENT = {
     }
   },
   ironHelmet: {
-    id: 'iron-helmet',
-    name: 'Iron Helmet',
+    id: 'hat-1',
+    name: 'Hat 1',
     type: 'helmet',
-    spriteKey: 'character-helmet-basic',
+    spriteKey: 'character-helmet-hat-1',
+    render: {
+      coordinateSpace: 'characterCanvas512',
+      offsetX: 0,
+      offsetY: 0
+    },
     statBonuses: {
       defense: 2,
       maxHp: 6

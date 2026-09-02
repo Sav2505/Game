@@ -33,11 +33,23 @@ export interface CharacterAppearance {
   skinColor: string;
 }
 
+export type EquipmentCoordinateSpace = 'layerLocal' | 'characterCanvas512';
+
+export interface EquipmentRenderConfig {
+  coordinateSpace?: EquipmentCoordinateSpace;
+  offsetX?: number;
+  offsetY?: number;
+  scale?: number;
+  originX?: number;
+  originY?: number;
+}
+
 export interface EquipmentItem {
   id: string;
   name: string;
   type: EquipmentType;
   spriteKey: string;
+  render?: EquipmentRenderConfig;
   statBonuses: Partial<CharacterStats>;
 }
 

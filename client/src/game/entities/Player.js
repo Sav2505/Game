@@ -20,6 +20,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     canDoubleJump = true;
     hasUsedDoubleJump = false;
     jumpWasPressed = false;
+    walkAnimationReadyAt = 0;
+    wasRunOnGround = false;
     constructor(scene, x, y, config = {}) {
         const character = config.character ?? createDefaultPlayerCharacter();
         const finalStats = calculateFinalCharacterStats(character.baseStats, character.equipment);
@@ -108,6 +110,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const body = this.body;
         const moveDirection = controls.left ? -1 : controls.right ? 1 : 0;
         const jumpPressedThisFrame = controls.jumpPressed && !this.jumpWasPressed;
+        const isRising = !body.blocked.down && body.velocity.y < -10;
         const isFalling = !body.blocked.down && body.velocity.y > 10;
         this.jumpWasPressed = controls.jumpPressed;
         if (body.blocked.down) {
@@ -135,7 +138,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 this.canDoubleJump = true;
                 this.hasUsedDoubleJump = false;
             }
-            else if (this.canDoubleJump && !this.hasUsedDoubleJump) {
+            else if (this.canDoubleJump && !this.hasUsedDoubleJump && isRising) {
                 const doubleJumpForce = Math.round(PLAYER_CONFIG.jumpForce * PLAYER_CONFIG.doubleJumpMultiplier);
                 this.setVelocityY(-doubleJumpForce);
                 this.state = 'doubleJump';
@@ -163,6 +166,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.state = body.blocked.down ? 'idle' : 'fall';
             this.clearTint();
         }
+        const isRunOnGround = this.state === 'run' && body.blocked.down;
+        if (isRunOnGround) {
+            if (!this.wasRunOnGround) {
+                this.walkAnimationReadyAt = time + PLAYER_CONFIG.walkAnimationDelayMs;
+            }
+        }
+        else {
+            this.walkAnimationReadyAt = 0;
+        }
+        this.wasRunOnGround = isRunOnGround;
         this.syncRenderer(time);
     }
     get isDead() {
@@ -172,7 +185,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.characterRenderer.setPosition(this.x, this.y - 28);
         this.characterRenderer.setFacingDirection(this.facing);
         const animationState = this.state === 'run'
-            ? 'walk'
+            ? time >= this.walkAnimationReadyAt
+                ? 'walk'
+                : 'idle'
             : this.state === 'jump' || this.state === 'fall'
                 ? 'idle'
                 : this.state === 'doubleJump'

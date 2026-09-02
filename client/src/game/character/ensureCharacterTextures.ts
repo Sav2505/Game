@@ -429,6 +429,7 @@ function ensureBodySpriteSheetTexture(scene: Phaser.Scene, key: string, path: st
 
 export function ensureCharacterTextures(scene: Phaser.Scene): void {
   ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.stand, '/assets/characters/player/body/stand.png');
+  ensureImageTexture(scene, 'character-helmet-hat-1', '/assets/characters/player/helmets/hat_1.png');
   ensureBodySpriteSheetTexture(
     scene,
     PLAYER_CHARACTER_BODY_TEXTURE_KEYS.walk,

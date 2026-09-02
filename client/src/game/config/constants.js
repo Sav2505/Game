@@ -8,6 +8,7 @@ export const PLAYER_CONFIG = {
     movementSpeed: 260,
     jumpForce: 560,
     doubleJumpMultiplier: 1.3,
+    walkAnimationDelayMs: 90,
     gravity: 1200,
     maxHp: 100,
     attackDamage: 20,

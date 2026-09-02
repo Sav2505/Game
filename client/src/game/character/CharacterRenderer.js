@@ -233,9 +233,12 @@ export class CharacterRenderer {
     setBodyDisplaySize(bodyImage) {
         const sourceWidth = Math.max(1, bodyImage.width);
         const sourceHeight = Math.max(1, bodyImage.height);
+        const targetWidth = PLAYER_CHARACTER_RENDER_CONFIG.bodyDisplayWidth;
         const targetHeight = PLAYER_CHARACTER_RENDER_CONFIG.bodyDisplayHeight;
-        const targetWidth = Math.max(1, Math.round((sourceWidth / sourceHeight) * targetHeight));
-        bodyImage.setDisplaySize(targetWidth, targetHeight);
+        const scale = Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+        const finalWidth = Math.max(1, Math.round(sourceWidth * scale));
+        const finalHeight = Math.max(1, Math.round(sourceHeight * scale));
+        bodyImage.setDisplaySize(finalWidth, finalHeight);
     }
     updateLayerTexture(layerKey, textureKey, tintable = false, tintColor) {
         const layer = this.layers.get(layerKey);

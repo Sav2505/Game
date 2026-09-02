@@ -5,6 +5,7 @@ import type {
     CharacterEquipment,
     CharacterFacingDirection,
     EquipmentItem,
+    EquipmentRenderConfig,
     PlayerCharacter,
 } from './types';
 import { ensureCharacterTextures } from './ensureCharacterTextures';
@@ -41,11 +42,16 @@ type RenderLayer = {
     image: Phaser.GameObjects.Image;
     baseX: number;
     baseY: number;
+    baseScale: number;
+    baseOriginX: number;
+    baseOriginY: number;
 };
 
 type BodyTextureWithOffsets = Phaser.Textures.Texture & {
     playerFrameOffsetX?: number[];
 };
+
+const CHARACTER_CANVAS_SIZE = 512;
 
 export class CharacterRenderer {
     public readonly container: Phaser.GameObjects.Container;
@@ -319,7 +325,10 @@ export class CharacterRenderer {
             this.layers.set(layer.key, {
                 image,
                 baseX: layer.x,
-                baseY: layer.y
+                baseY: layer.y,
+                baseScale: layer.scale ?? 1,
+                baseOriginX: 0.5,
+                baseOriginY: 0.5,
             });
         }
     }
@@ -327,10 +336,13 @@ export class CharacterRenderer {
     private setBodyDisplaySize(bodyImage: Phaser.GameObjects.Image): void {
         const sourceWidth = Math.max(1, bodyImage.width);
         const sourceHeight = Math.max(1, bodyImage.height);
+        const targetWidth = PLAYER_CHARACTER_RENDER_CONFIG.bodyDisplayWidth;
         const targetHeight = PLAYER_CHARACTER_RENDER_CONFIG.bodyDisplayHeight;
-        const targetWidth = Math.max(1, Math.round((sourceWidth / sourceHeight) * targetHeight));
+        const scale = Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+        const finalWidth = Math.max(1, Math.round(sourceWidth * scale));
+        const finalHeight = Math.max(1, Math.round(sourceHeight * scale));
 
-        bodyImage.setDisplaySize(targetWidth, targetHeight);
+        bodyImage.setDisplaySize(finalWidth, finalHeight);
     }
 
     private updateLayerTexture(layerKey: LayerKey, textureKey: string, tintable = false, tintColor?: string): void {
@@ -359,11 +371,7 @@ export class CharacterRenderer {
             return;
         }
 
-        const placeholderSlots: LayerKey[] = ['cape', 'pants', 'backShoe', 'frontShoe', 'top', 'helmet', 'weapon', 'accessory', 'gloves'];
-        if (placeholderSlots.includes(slot)) {
-            layer.image.setVisible(false);
-            return;
-        }
+        this.resetLayerTransform(slot);
 
         if (!item) {
             layer.image.setVisible(false);
@@ -372,6 +380,80 @@ export class CharacterRenderer {
 
         layer.image.setTexture(item.spriteKey);
         layer.image.setVisible(true);
+        this.applyEquipmentRender(slot, item.render);
+    }
+
+    private resetLayerTransform(layerKey: LayerKey): void {
+        const layer = this.layers.get(layerKey);
+        if (!layer) {
+            return;
+        }
+
+        layer.image.x = layer.baseX;
+        layer.image.y = layer.baseY;
+        layer.image.setScale(layer.baseScale);
+        layer.image.setOrigin(layer.baseOriginX, layer.baseOriginY);
+    }
+
+    private applyEquipmentRender(layerKey: LayerKey, render?: EquipmentRenderConfig): void {
+        if (!render) {
+            return;
+        }
+
+        if (render.coordinateSpace === 'characterCanvas512') {
+            this.applyCharacterCanvasEquipmentRender(layerKey, render);
+            return;
+        }
+
+        const layer = this.layers.get(layerKey);
+        if (!layer) {
+            return;
+        }
+
+        const scale = render.scale ?? layer.baseScale;
+        layer.image.setScale(scale);
+        layer.image.setOrigin(render.originX ?? layer.baseOriginX, render.originY ?? layer.baseOriginY);
+        layer.image.x = layer.baseX + (render.offsetX ?? 0);
+        layer.image.y = layer.baseY + (render.offsetY ?? 0);
+    }
+
+    private applyCharacterCanvasEquipmentRender(layerKey: LayerKey, render: EquipmentRenderConfig): void {
+        const layer = this.layers.get(layerKey);
+        const body = this.layers.get('body')?.image;
+        if (!layer || !body) {
+            return;
+        }
+
+        const layerScale = render.scale ?? 1;
+        const ratioX = body.displayWidth / CHARACTER_CANVAS_SIZE;
+        const ratioY = body.displayHeight / CHARACTER_CANVAS_SIZE;
+
+        layer.image.setDisplaySize(body.displayWidth * layerScale, body.displayHeight * layerScale);
+        layer.image.setOrigin(render.originX ?? body.originX, render.originY ?? body.originY);
+        layer.image.x = body.x + ((render.offsetX ?? 0) * ratioX);
+        layer.image.y = body.y + ((render.offsetY ?? 0) * ratioY);
+    }
+
+    private syncCharacterCanvasEquipmentLayers(): void {
+        const equipmentLayers: Array<[LayerKey, EquipmentItem | null]> = [
+            ['helmet', this.character.equipment.helmet ?? null],
+            ['top', this.character.equipment.top ?? null],
+            ['pants', this.character.equipment.pants ?? null],
+            ['backShoe', this.character.equipment.shoes ?? null],
+            ['frontShoe', this.character.equipment.shoes ?? null],
+            ['gloves', this.character.equipment.gloves ?? null],
+            ['cape', this.character.equipment.cape ?? null],
+            ['weapon', this.character.equipment.weapon ?? null],
+            ['accessory', this.character.equipment.accessory ?? null],
+        ];
+
+        for (const [layerKey, item] of equipmentLayers) {
+            if (!item?.render || item.render.coordinateSpace !== 'characterCanvas512') {
+                continue;
+            }
+
+            this.applyCharacterCanvasEquipmentRender(layerKey, item.render);
+        }
     }
 
     private applyAnimationState(time: number): void {
@@ -580,6 +662,7 @@ export class CharacterRenderer {
         if (body) {
             this.applyBodyFrame(bodyTextureKey, bodyFrameIndex);
         }
+        this.syncCharacterCanvasEquipmentLayers();
 
         this.expression = nextExpression;
 

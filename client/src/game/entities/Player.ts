@@ -53,6 +53,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private jumpWasPressed = false;
 
+  private walkAnimationReadyAt = 0;
+
+  private wasRunOnGround = false;
+
   public constructor(scene: Phaser.Scene, x: number, y: number, config: Partial<PlayerConfig> = {}) {
     const character = config.character ?? createDefaultPlayerCharacter();
     const finalStats = calculateFinalCharacterStats(character.baseStats, character.equipment);
@@ -154,6 +158,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     const moveDirection = controls.left ? -1 : controls.right ? 1 : 0;
     const jumpPressedThisFrame = controls.jumpPressed && !this.jumpWasPressed;
+    const isRising = !body.blocked.down && body.velocity.y < -10;
     const isFalling = !body.blocked.down && body.velocity.y > 10;
     this.jumpWasPressed = controls.jumpPressed;
 
@@ -182,7 +187,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.state = 'jump';
         this.canDoubleJump = true;
         this.hasUsedDoubleJump = false;
-      } else if (this.canDoubleJump && !this.hasUsedDoubleJump) {
+      } else if (this.canDoubleJump && !this.hasUsedDoubleJump && isRising) {
         const doubleJumpForce = Math.round(PLAYER_CONFIG.jumpForce * PLAYER_CONFIG.doubleJumpMultiplier);
         this.setVelocityY(-doubleJumpForce);
         this.state = 'doubleJump';
@@ -213,6 +218,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.clearTint();
     }
 
+    const isRunOnGround = this.state === 'run' && body.blocked.down;
+    if (isRunOnGround) {
+      if (!this.wasRunOnGround) {
+        this.walkAnimationReadyAt = time + PLAYER_CONFIG.walkAnimationDelayMs;
+      }
+    } else {
+      this.walkAnimationReadyAt = 0;
+    }
+    this.wasRunOnGround = isRunOnGround;
+
     this.syncRenderer(time);
   }
 
@@ -225,7 +240,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.characterRenderer.setFacingDirection(this.facing as CharacterFacingDirection);
     const animationState: CharacterAnimationState =
       this.state === 'run'
-        ? 'walk'
+        ? time >= this.walkAnimationReadyAt
+          ? 'walk'
+          : 'idle'
         : this.state === 'jump' || this.state === 'fall'
           ? 'idle'
           : this.state === 'doubleJump'
