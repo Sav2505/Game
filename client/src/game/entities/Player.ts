@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { CharacterRenderer } from '@/game/character/CharacterRenderer';
 import { createDefaultPlayerCharacter } from '@/game/character/catalog';
 import { calculateFinalCharacterStats } from '@/game/character/calculateFinalStats';
+import { PLAYER_CHARACTER_RENDER_CONFIG } from '@/game/character/renderConfig';
 import type { CharacterAnimationState, CharacterFacingDirection, PlayerCharacter } from '@/game/character/types';
 import { PLAYER_CONFIG } from '@/game/config/constants';
 import { HealthComponent } from '@/game/systems/HealthComponent';
@@ -62,7 +63,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.character = character;
     this.finalStats = finalStats;
     this.characterRenderer = new CharacterRenderer(scene, character, x, y - 28);
-    this.characterRenderer.setScale(3);
+    this.characterRenderer.setScale(PLAYER_CHARACTER_RENDER_CONFIG.rendererScale);
     this.setDepth(20);
     this.setCollideWorldBounds(true);
     this.setScale(1.2);

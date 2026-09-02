@@ -1,4 +1,19 @@
 import Phaser from 'phaser';
+import {
+  PLAYER_CHARACTER_ANIMATION_TIMING,
+  PLAYER_CHARACTER_BODY_TEXTURE_KEYS,
+} from './renderConfig';
+
+type SheetFrameSpec = {
+  frameWidth: number;
+  frameHeight: number;
+  frameCount: number;
+};
+
+const PREFERRED_FRAME_WIDTH = 512;
+const PREFERRED_FRAME_HEIGHT = 512;
+const LEGACY_FRAME_WIDTH = 400;
+const LEGACY_FRAME_HEIGHT = 392;
 
 function generateTexture(scene: Phaser.Scene, key: string, width: number, height: number, draw: (graphics: Phaser.GameObjects.Graphics) => void): void {
   if (scene.textures.exists(key)) {
@@ -257,7 +272,31 @@ function ensureImageTexture(scene: Phaser.Scene, key: string, path: string): voi
   image.src = path;
 }
 
-function ensureSpriteSheetTexture(scene: Phaser.Scene, key: string, path: string, frameWidth: number, frameHeight: number, frameCount: number): void {
+function detectSheetFrameSpec(image: HTMLImageElement, expectedFrameCount: number): SheetFrameSpec {
+  if (image.width % PREFERRED_FRAME_WIDTH === 0 && image.height === PREFERRED_FRAME_HEIGHT) {
+    return {
+      frameWidth: PREFERRED_FRAME_WIDTH,
+      frameHeight: PREFERRED_FRAME_HEIGHT,
+      frameCount: image.width / PREFERRED_FRAME_WIDTH,
+    };
+  }
+
+  if (image.width % LEGACY_FRAME_WIDTH === 0 && image.height === LEGACY_FRAME_HEIGHT) {
+    return {
+      frameWidth: LEGACY_FRAME_WIDTH,
+      frameHeight: LEGACY_FRAME_HEIGHT,
+      frameCount: image.width / LEGACY_FRAME_WIDTH,
+    };
+  }
+
+  return {
+    frameWidth: image.width,
+    frameHeight: image.height,
+    frameCount: Math.max(1, expectedFrameCount),
+  };
+}
+
+function ensureBodySpriteSheetTexture(scene: Phaser.Scene, key: string, path: string, expectedFrameCount: number): void {
   if (scene.textures.exists(key)) {
     return;
   }
@@ -267,11 +306,20 @@ function ensureSpriteSheetTexture(scene: Phaser.Scene, key: string, path: string
     if (!scene.sys?.renderer || !scene.textures || scene.textures.exists(key)) {
       return;
     }
+
+    const spec = detectSheetFrameSpec(image, expectedFrameCount);
+
+    if (spec.frameCount !== expectedFrameCount) {
+      console.warn(
+        `[character] ${key} expected ${expectedFrameCount} frames, detected ${spec.frameCount} (${image.width}x${image.height}).`,
+      );
+    }
+
     scene.textures.addSpriteSheet(key, image, {
-      frameWidth,
-      frameHeight,
+      frameWidth: spec.frameWidth,
+      frameHeight: spec.frameHeight,
       startFrame: 0,
-      endFrame: frameCount - 1,
+      endFrame: Math.max(0, spec.frameCount - 1),
       margin: 0,
       spacing: 0,
     });
@@ -283,9 +331,19 @@ function ensureSpriteSheetTexture(scene: Phaser.Scene, key: string, path: string
 }
 
 export function ensureCharacterTextures(scene: Phaser.Scene): void {
-  ensureImageTexture(scene, 'player-base-body', '/assets/characters/player/body/stand.png');
-  ensureSpriteSheetTexture(scene, 'player-walk-spritesheet', '/assets/characters/player/body/walk.png', 400, 392, 6);
-  ensureSpriteSheetTexture(scene, 'player-jump-spritesheet', '/assets/characters/player/body/jump.png', 400, 392, 6);
+  ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.stand, '/assets/characters/player/body/stand.png');
+  ensureBodySpriteSheetTexture(
+    scene,
+    PLAYER_CHARACTER_BODY_TEXTURE_KEYS.walk,
+    '/assets/characters/player/body/walk.png',
+    PLAYER_CHARACTER_ANIMATION_TIMING.fallbackWalkFrameCount,
+  );
+  ensureBodySpriteSheetTexture(
+    scene,
+    PLAYER_CHARACTER_BODY_TEXTURE_KEYS.jump,
+    '/assets/characters/player/body/jump.png',
+    PLAYER_CHARACTER_ANIMATION_TIMING.fallbackJumpFrameCount,
+  );
   generateTexture(scene, 'character-body-base', 96, 96, drawBody);
   generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
   generateTexture(scene, 'character-head-base', 96, 96, drawHead);

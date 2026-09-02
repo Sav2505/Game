@@ -8,6 +8,12 @@ import type {
     PlayerCharacter,
 } from './types';
 import { ensureCharacterTextures } from './ensureCharacterTextures';
+import {
+    PLAYER_CHARACTER_ANIMATION_TIMING,
+    PLAYER_CHARACTER_BODY_TEXTURE_KEYS,
+    PLAYER_CHARACTER_DEBUG,
+    PLAYER_CHARACTER_RENDER_CONFIG,
+} from './renderConfig';
 
 type LayerKey =
     | 'shadow'
@@ -40,8 +46,6 @@ type RenderLayer = {
 export class CharacterRenderer {
     public readonly container: Phaser.GameObjects.Container;
 
-    private static readonly BODY_TARGET_HEIGHT = 102;
-
     private readonly scene: Phaser.Scene;
 
     private readonly layers = new Map<LayerKey, RenderLayer>();
@@ -62,6 +66,12 @@ export class CharacterRenderer {
 
     private expression: 'idle' | 'smile' | 'surprised' | 'hurt' | 'dead' = 'idle';
 
+    private lastBodyTextureKey: string | null = null;
+
+    private debugText?: Phaser.GameObjects.Text;
+
+    private debugGraphics?: Phaser.GameObjects.Graphics;
+
     public constructor(scene: Phaser.Scene, character: PlayerCharacter, x = 0, y = 0) {
         this.scene = scene;
         this.character = character;
@@ -71,6 +81,7 @@ export class CharacterRenderer {
         this.buildLayers();
         this.setCharacter(character);
         this.setPosition(x, y);
+        this.createDebugText();
     }
 
     public setPosition(x: number, y: number): void {
@@ -143,12 +154,99 @@ export class CharacterRenderer {
     }
 
     public destroy(): void {
+        this.debugGraphics?.destroy();
+        this.debugText?.destroy();
         this.container.destroy(true);
     }
 
     private applyTransformScale(): void {
         const directionMultiplier = this.facingDirection === 'left' ? -1 : 1;
         this.container.setScale(directionMultiplier * this.renderScale, this.renderScale);
+    }
+
+    private getFrameCount(textureKey: string, fallback: number): number {
+        if (!this.scene.textures.exists(textureKey)) {
+            return fallback;
+        }
+
+        const texture = this.scene.textures.get(textureKey);
+        const frameNames = texture.getFrameNames().filter((name) => name !== '__BASE');
+        return frameNames.length > 0 ? frameNames.length : fallback;
+    }
+
+    private applyBodyFrame(textureKey: string, frameIndex: number): void {
+        const body = this.layers.get('body')?.image;
+        if (!body) {
+            return;
+        }
+
+        if (this.lastBodyTextureKey !== textureKey) {
+            body.setTexture(textureKey);
+            body.setFlipX(false);
+            body.setFlipY(false);
+            this.setBodyDisplaySize(body);
+            body.setOrigin(PLAYER_CHARACTER_RENDER_CONFIG.bodyOriginX, PLAYER_CHARACTER_RENDER_CONFIG.bodyOriginY);
+            this.lastBodyTextureKey = textureKey;
+        }
+
+        body.setFrame(frameIndex);
+    }
+
+    private createDebugText(): void {
+        if (!PLAYER_CHARACTER_DEBUG) {
+            return;
+        }
+
+        this.debugGraphics = this.scene.add.graphics().setDepth(499).setScrollFactor(1);
+
+        this.debugText = this.scene.add
+            .text(0, 0, '', {
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                color: '#d9faff',
+                backgroundColor: 'rgba(7, 12, 20, 0.7)',
+                padding: { left: 6, right: 6, top: 4, bottom: 4 },
+            })
+            .setDepth(500)
+            .setScrollFactor(1)
+            .setOrigin(0, 1);
+    }
+
+    private updateDebugText(frameIndex: number): void {
+        if (!this.debugText) {
+            return;
+        }
+
+        const body = this.layers.get('body')?.image;
+        const cameraZoom = this.scene.cameras.main.zoom;
+        const screenWidth = (body?.displayWidth ?? 0) * Math.abs(this.container.scaleX) * cameraZoom;
+        const screenHeight = (body?.displayHeight ?? 0) * Math.abs(this.container.scaleY) * cameraZoom;
+
+        this.debugText.setPosition(this.container.x + 56, this.container.y - 92);
+        this.debugText.setText([
+            `state: ${this.animationState}`,
+            `tex: ${this.lastBodyTextureKey ?? '-'}`,
+            `frame: ${frameIndex}`,
+            `scale: ${Math.abs(this.container.scaleX).toFixed(2)}`,
+            `world: ${this.container.x.toFixed(1)}, ${this.container.y.toFixed(1)}`,
+            `display: ${body?.displayWidth.toFixed(1) ?? '0'} x ${body?.displayHeight.toFixed(1) ?? '0'}`,
+            `screen: ${screenWidth.toFixed(1)} x ${screenHeight.toFixed(1)}`,
+        ]);
+
+        if (this.debugGraphics && body) {
+            const halfBodyWidth = (body.displayWidth * Math.abs(this.container.scaleX)) * 0.5;
+            const bodyHeight = body.displayHeight * Math.abs(this.container.scaleY);
+            const bodyTop = this.container.y - (PLAYER_CHARACTER_RENDER_CONFIG.bodyOriginY * bodyHeight);
+            const bodyBottom = bodyTop + bodyHeight;
+
+            this.debugGraphics.clear();
+            this.debugGraphics.lineStyle(1, 0x59dcff, 0.95);
+            this.debugGraphics.strokeRect(this.container.x - halfBodyWidth, bodyTop, halfBodyWidth * 2, bodyHeight);
+            this.debugGraphics.lineStyle(1, 0xffdf6a, 0.95);
+            this.debugGraphics.lineBetween(this.container.x - 28, bodyBottom, this.container.x + 28, bodyBottom);
+            this.debugGraphics.lineStyle(1, 0xf88ca1, 0.95);
+            this.debugGraphics.strokeCircle(this.container.x, this.container.y, 2.5);
+        }
     }
 
     private buildLayers(): void {
@@ -160,7 +258,7 @@ export class CharacterRenderer {
             { key: 'backShoe', textureKey: 'character-shoes-basic', x: -10, y: 30, scale: 1 },
             { key: 'frontShoe', textureKey: 'character-shoes-basic', x: 10, y: 30, scale: 1 },
             { key: 'pants', textureKey: 'character-pants-basic', x: 0, y: 26, scale: 1 },
-            { key: 'body', textureKey: 'player-base-body', x: 0, y: 8, scale: 1 },
+            { key: 'body', textureKey: PLAYER_CHARACTER_BODY_TEXTURE_KEYS.stand, x: 0, y: 8, scale: 1 },
             { key: 'backArm', textureKey: 'character-arm-base', x: -23, y: 6, scale: 1 },
             { key: 'torso', textureKey: 'character-torso-base', x: 0, y: 8, scale: 1 },
             { key: 'top', textureKey: 'character-top-basic', x: 0, y: 8, scale: 1 },
@@ -199,12 +297,10 @@ export class CharacterRenderer {
     }
 
     private setBodyDisplaySize(bodyImage: Phaser.GameObjects.Image): void {
-        const sourceWidth = Math.max(1, bodyImage.width);
-        const sourceHeight = Math.max(1, bodyImage.height);
-        const targetHeight = CharacterRenderer.BODY_TARGET_HEIGHT;
-        const targetWidth = Math.max(1, Math.round((sourceWidth / sourceHeight) * targetHeight));
-
-        bodyImage.setDisplaySize(targetWidth, targetHeight);
+        bodyImage.setDisplaySize(
+            PLAYER_CHARACTER_RENDER_CONFIG.bodyDisplayWidth,
+            PLAYER_CHARACTER_RENDER_CONFIG.bodyDisplayHeight,
+        );
     }
 
     private updateLayerTexture(layerKey: LayerKey, textureKey: string, tintable = false, tintColor?: string): void {
@@ -329,6 +425,8 @@ export class CharacterRenderer {
         let yOffset = 0;
         let weaponRotation = 0;
         let alpha = 1;
+        let bodyTextureKey: string = PLAYER_CHARACTER_BODY_TEXTURE_KEYS.stand;
+        let bodyFrameIndex = 0;
         let nextExpression: typeof this.expression = 'idle';
 
         switch (this.animationState) {
@@ -336,6 +434,14 @@ export class CharacterRenderer {
                 yOffset = walkBob;
                 weaponRotation = Math.sin(time / 90) * 0.1;
                 nextExpression = 'smile';
+                {
+                    const walkFrameCount = this.getFrameCount(
+                        PLAYER_CHARACTER_BODY_TEXTURE_KEYS.walk,
+                        PLAYER_CHARACTER_ANIMATION_TIMING.fallbackWalkFrameCount,
+                    );
+                    bodyTextureKey = PLAYER_CHARACTER_BODY_TEXTURE_KEYS.walk;
+                    bodyFrameIndex = Math.floor((time / PLAYER_CHARACTER_ANIMATION_TIMING.walkFrameMs) % walkFrameCount);
+                }
                 if (frontArm) {
                     frontArm.y = (this.layers.get('frontArm')?.baseY ?? 0) + Math.sin(time / 120) * 2;
                     frontArm.rotation = walkSwing * 0.01;
@@ -366,6 +472,15 @@ export class CharacterRenderer {
                 yOffset = this.animationState === 'doubleJump' ? -12 : -8;
                 weaponRotation = this.animationState === 'doubleJump' ? -0.45 : -0.3;
                 nextExpression = 'surprised';
+                {
+                    const jumpFrameCount = this.getFrameCount(
+                        PLAYER_CHARACTER_BODY_TEXTURE_KEYS.jump,
+                        PLAYER_CHARACTER_ANIMATION_TIMING.fallbackJumpFrameCount,
+                    );
+                    bodyTextureKey = PLAYER_CHARACTER_BODY_TEXTURE_KEYS.jump;
+                    const normalizedFrame = Math.floor((time / PLAYER_CHARACTER_ANIMATION_TIMING.jumpFrameMs) % jumpFrameCount);
+                    bodyFrameIndex = Math.max(0, jumpFrameCount - 1 - normalizedFrame);
+                }
                 if (frontArm) {
                     frontArm.y = (this.layers.get('frontArm')?.baseY ?? 0) - (this.animationState === 'doubleJump' ? 6 : 4);
                     frontArm.rotation = this.animationState === 'doubleJump' ? -0.55 : -0.3;
@@ -429,43 +544,18 @@ export class CharacterRenderer {
                                 ? 'character-face-dead'
                                 : 'character-face-idle';
             face.setTexture(faceKey);
-            face.setScale(this.animationState === 'death' ? 0.98 : this.animationState === 'jump' ? 0.96 : 1);
+            face.setScale(1);
         }
 
         if (body) {
-            const bodyAnchorY = 0.72;
-
-            if (this.animationState === 'walk') {
-                const walkFrameDuration = 200;
-                const frameIndex = Math.floor((time / walkFrameDuration) % 6);
-                body.setTexture('player-walk-spritesheet');
-                body.setFlipX(false);
-                body.setFlipY(false);
-                this.setBodyDisplaySize(body);
-                body.setOrigin(0.5, bodyAnchorY);
-                body.setFrame(frameIndex);
-            } else if (this.animationState === 'doubleJump') {
-                const jumpFrameDuration = 120;
-                const frameIndex = 5 - Math.min(Math.floor((time / jumpFrameDuration) % 6), 5);
-                body.setTexture('player-jump-spritesheet');
-                body.setFlipX(false);
-                body.setFlipY(false);
-                this.setBodyDisplaySize(body);
-                body.setOrigin(0.5, bodyAnchorY);
-                body.setFrame(frameIndex);
-            } else {
-                body.setTexture('player-base-body');
-                body.setFlipX(false);
-                body.setFlipY(false);
-                this.setBodyDisplaySize(body);
-                body.setOrigin(0.5, bodyAnchorY);
-                body.setFrame(0);
-            }
+            this.applyBodyFrame(bodyTextureKey, bodyFrameIndex);
         }
 
         this.expression = nextExpression;
 
-        this.container.y = this.baseY + yOffset;
+        const nextX = PLAYER_CHARACTER_RENDER_CONFIG.snapToPixels ? Math.round(this.baseX) : this.baseX;
+        const nextY = PLAYER_CHARACTER_RENDER_CONFIG.snapToPixels ? Math.round(this.baseY + yOffset) : this.baseY + yOffset;
+        this.container.setPosition(nextX, nextY);
         this.container.alpha = alpha;
         if (shadow) {
             shadow.setScale(1 + Math.abs(yOffset) * 0.02, 1);
@@ -484,7 +574,9 @@ export class CharacterRenderer {
 
         if (head) {
             head.y = headBase + (this.animationState === 'jump' ? -3 : 0);
-            head.setScale(this.animationState === 'death' ? 0.98 : 1);
+            head.setScale(1);
         }
+
+        this.updateDebugText(bodyFrameIndex);
     }
 }

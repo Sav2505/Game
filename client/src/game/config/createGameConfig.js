@@ -26,9 +26,9 @@ export function createGameConfig(parent, launchScene = 'GameScene') {
             height: GAME_HEIGHT
         },
         render: {
-            antialias: false,
-            pixelArt: true,
-            roundPixels: true
+            antialias: true,
+            pixelArt: false,
+            roundPixels: false
         },
         scene: [BootScene, PreloadScene, GameScene, CharacterShowcaseScene],
         callbacks: {
