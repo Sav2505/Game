@@ -20,4 +20,5 @@ export const PLAYER_CHARACTER_BODY_TEXTURE_KEYS = {
   stand: 'player-base-body',
   walk: 'player-walk-spritesheet',
   jump: 'player-jump-spritesheet',
+  hurt: 'player-hurt-body',
 } as const;

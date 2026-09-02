@@ -25,6 +25,10 @@ export interface PlayerConfig {
 }
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
+  private static readonly HURT_STUN_MS = 180;
+
+  private static readonly HURT_VISUAL_MS = 5000;
+
   public readonly id = 'player-1';
 
   public readonly character: PlayerCharacter;
@@ -46,6 +50,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private lastAttackTime = -Infinity;
 
   private hurtUntil = 0;
+
+  private hurtVisualUntil = 0;
 
   private canDoubleJump = true;
 
@@ -104,11 +110,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return true;
   }
 
-  public takeDamage(amount: number): boolean {
+  public takeDamage(amount: number, source: 'monster' | 'other' = 'other'): boolean {
     const died = this.health.takeDamage(amount);
     if (!died) {
       this.state = 'hurt';
-      this.hurtUntil = this.scene.time.now + 180;
+      this.hurtUntil = this.scene.time.now + Player.HURT_STUN_MS;
+      if (source === 'monster') {
+        this.hurtVisualUntil = this.scene.time.now + Player.HURT_VISUAL_MS;
+      }
       this.setTint(0xff7f93);
     }
     this.syncRenderer(this.scene.time.now);
@@ -142,6 +151,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.canDoubleJump = true;
     this.hasUsedDoubleJump = false;
     this.jumpWasPressed = false;
+    this.hurtVisualUntil = 0;
     this.syncRenderer(this.scene.time.now);
   }
 
@@ -238,8 +248,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private syncRenderer(time: number): void {
     this.characterRenderer.setPosition(this.x, this.y - 28);
     this.characterRenderer.setFacingDirection(this.facing as CharacterFacingDirection);
-    const animationState: CharacterAnimationState =
-      this.state === 'run'
+    const hasActiveHurtVisual = time < this.hurtVisualUntil && this.state !== 'dead';
+    const animationState: CharacterAnimationState = hasActiveHurtVisual
+      ? 'hurt'
+      : this.state === 'run'
         ? 'idle'
         : this.state === 'jump' || this.state === 'fall'
           ? 'idle'

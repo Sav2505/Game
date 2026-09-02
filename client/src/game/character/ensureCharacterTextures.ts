@@ -439,6 +439,7 @@ export function ensureCharacterTextures(scene: Phaser.Scene): void {
     PLAYER_CHARACTER_ANIMATION_TIMING.fallbackWalkFrameCount,
   );
   ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.jump, '/assets/characters/player/body/jump.png');
+  ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.hurt, '/assets/characters/player/body/hurt.png');
   generateTexture(scene, 'character-body-base', 96, 96, drawBody);
   generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
   generateTexture(scene, 'character-head-base', 96, 96, drawHead);

@@ -285,7 +285,7 @@ export class CharacterRenderer {
 
     private buildLayers(): void {
         const layerOrder: Array<{ key: LayerKey; textureKey: string; x: number; y: number; scale?: number; alpha?: number }> = [
-            { key: 'shadow', textureKey: 'character-shadow', x: 0, y: 66, alpha: 0.85, scale: 1 },
+            { key: 'shadow', textureKey: 'character-shadow', x: 0, y: 42, alpha: 0.85, scale: 1 },
             { key: 'cape', textureKey: 'character-cape-red', x: -10, y: 12, scale: 1 },
             { key: 'backLeg', textureKey: 'character-leg-base', x: -10, y: 30, scale: 1 },
             { key: 'frontLeg', textureKey: 'character-leg-base', x: 10, y: 30, scale: 1 },
@@ -627,9 +627,11 @@ export class CharacterRenderer {
                 }
                 break;
             case 'hurt':
-                yOffset = -1 + Math.sin(time / 40) * 1.2;
-                alpha = 0.88;
+                yOffset = idleBob * 0.4;
+                alpha = 1;
                 nextExpression = 'hurt';
+                bodyTextureKey = PLAYER_CHARACTER_BODY_TEXTURE_KEYS.hurt;
+                bodyFrameIndex = 0;
                 break;
             case 'death':
                 yOffset = 8;

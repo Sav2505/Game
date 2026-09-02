@@ -94,7 +94,7 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
       this.setFlipX(player.x < this.x);
       if (time >= this.nextAttackTime) {
         this.nextAttackTime = time + SLIME_CONFIG.attackCooldown;
-        player.takeDamage(this.damage);
+        player.takeDamage(this.damage, 'monster');
         player.applyDamageKnockback(this.x);
       }
       return;
