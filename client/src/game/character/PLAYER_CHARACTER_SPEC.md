@@ -93,6 +93,34 @@ Do not randomly resize individual equipment assets or create inconsistent framin
 
 ---
 
+## 3A. Canonical Base Body Asset
+
+The approved base body is the canonical body layer for the main player character:
+
+- File: client/public/assets/characters/player/body/base_body.png
+- Format: PNG
+- Background: transparent
+- Role: underlying body foundation only
+- Contains: no clothes, no shoes, no cape, no helmet, no weapon, no accessory
+- Purpose: all future equipment and cosmetics must be layered on top of this base body
+
+This asset is the source of truth for the player's underlying figure.
+
+Rules:
+
+- do not redraw it
+- do not regenerate it
+- do not apply filters or recolor it
+- do not crop it
+- do not resize the source artwork
+- do not add clothing or equipment to compensate for missing layers
+- do not replace it with placeholder body art
+- all subsequent sprite layers must respect its silhouette, alignment, and proportions
+
+This body is the foundation for all future outfit, armor, and cosmetic layering.
+
+---
+
 ## 4. Character Anatomy and Proportions
 
 Target proportions:
@@ -225,6 +253,8 @@ Recommended conceptual layer structure:
 19. Accessory
 20. Effect
 
+The Body layer is the locked base asset and must remain the canonical foundation for the player character. Future clothing, armor, and accessories are independent overlays and must not be merged into the base body.
+
 The exact implementation may vary slightly from the current renderer, but the conceptual layering must remain stable. Equipment must remain replaceable independently.
 
 ---
@@ -250,6 +280,8 @@ Each equipment item should be capable of:
 4. modifying character stats
 
 The visual representation and gameplay data must remain separate.
+
+The base body asset is not a placeholder. Every equipment item must sit on top of it as a separate visual layer, without altering the underlying body figure.
 
 Conceptual structure:
 

@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "concurrently": "10.0.5",
+    "pngjs": "^7.0.0",
     "rimraf": "6.1.3"
   }
 }

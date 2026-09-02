@@ -220,8 +220,8 @@ export class GameScene extends Phaser.Scene {
     }
     getControls() {
         return {
-            left: Phaser.Input.Keyboard.JustDown(this.keys.cursorLeft) || this.keys.left.isDown,
-            right: Phaser.Input.Keyboard.JustDown(this.keys.cursorRight) || this.keys.right.isDown,
+            left: this.keys.left.isDown || this.keys.cursorLeft.isDown,
+            right: this.keys.right.isDown || this.keys.cursorRight.isDown,
             jumpPressed: Phaser.Input.Keyboard.JustDown(this.keys.jump) || Phaser.Input.Keyboard.JustDown(this.keys.cursorUp),
             attackPressed: Phaser.Input.Keyboard.JustDown(this.keys.attack),
             interact: Phaser.Input.Keyboard.JustDown(this.keys.interact)

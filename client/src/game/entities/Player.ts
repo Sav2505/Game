@@ -56,7 +56,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.character = character;
     this.finalStats = finalStats;
     this.characterRenderer = new CharacterRenderer(scene, character, x, y - 28);
-    this.characterRenderer.setScale(0.7);
+    this.characterRenderer.setScale(8);
     this.setDepth(20);
     this.setCollideWorldBounds(true);
     this.setScale(1.2);
@@ -192,7 +192,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private syncRenderer(time: number): void {
     this.characterRenderer.setPosition(this.x, this.y - 28);
     this.characterRenderer.setFacingDirection(this.facing as CharacterFacingDirection);
-    this.characterRenderer.playAnimation(this.state as CharacterAnimationState);
+    const animationState = this.state === 'run' ? 'walk' : this.state;
+    this.characterRenderer.playAnimation(animationState as CharacterAnimationState);
     this.characterRenderer.update(time);
   }
 

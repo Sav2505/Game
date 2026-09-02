@@ -26,7 +26,7 @@ export class CharacterShowcaseScene extends Phaser.Scene {
             color: '#aab6d6'
         }).setDepth(5);
         this.characterRenderer = new CharacterRenderer(this, characterStore.getState().character, width * 0.5, height * 0.78);
-        this.characterRenderer.setScale(1.45);
+        this.characterRenderer.setScale(1.0);
         this.characterRenderer.setFacingDirection('right');
         this.characterRenderer.playAnimation('idle');
         this.unsubscribeStore = characterStore.subscribe(() => {
@@ -75,13 +75,16 @@ export class CharacterShowcaseScene extends Phaser.Scene {
             characterStore.setFacingDirection('right');
             characterStore.playAnimation('walk');
         }
+        else if (Phaser.Input.Keyboard.JustDown(this.keys.idle)) {
+            characterStore.playAnimation('jump');
+        }
         else if (Phaser.Input.Keyboard.JustDown(this.keys.attack)) {
             characterStore.playAnimation('attack');
         }
         else if (Phaser.Input.Keyboard.JustDown(this.keys.hurt)) {
             characterStore.playAnimation('hurt');
         }
-        else if (Phaser.Input.Keyboard.JustDown(this.keys.idle)) {
+        else {
             characterStore.playAnimation('idle');
         }
         const bob = Math.sin(time / 220) * 2;

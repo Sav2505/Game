@@ -114,7 +114,7 @@ export class CharacterRenderer {
             const image = this.scene.add.image(layer.x, layer.y, layer.textureKey);
             image.setOrigin(0.5, 0.5);
             if (layer.key === 'body') {
-                image.setDisplaySize(96, 96);
+                image.setDisplaySize(36, 36);
             }
             if (typeof layer.alpha === 'number') {
                 image.setAlpha(layer.alpha);
@@ -179,6 +179,7 @@ export class CharacterRenderer {
         const frontShoe = this.layers.get('frontShoe')?.image;
         const backShoe = this.layers.get('backShoe')?.image;
         const head = this.layers.get('head')?.image;
+        const body = this.layers.get('body')?.image;
         const walkBob = Math.sin(time / 140) * 2;
         const idleBob = Math.sin(time / 260) * 1.1;
         const attackPulse = Math.sin(time / 45) * 2;
@@ -338,6 +339,16 @@ export class CharacterRenderer {
                             : 'character-face-idle';
             face.setTexture(faceKey);
             face.setScale(this.animationState === 'death' ? 0.98 : this.animationState === 'jump' ? 0.96 : 1);
+        }
+        if (body) {
+            if (this.animationState === 'walk') {
+                body.setTexture('player-walk-sprite', Math.floor(time / 80) % 5);
+                body.setDisplaySize(220, 220);
+            }
+            else {
+                body.setTexture('player-base-body');
+                body.setDisplaySize(36, 36);
+            }
         }
         this.expression = nextExpression;
         this.container.y = this.baseY + yOffset;
