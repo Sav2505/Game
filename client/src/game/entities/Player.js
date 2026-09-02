@@ -16,6 +16,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     state = 'idle';
     lastAttackTime = -Infinity;
     hurtUntil = 0;
+    canDoubleJump = true;
+    hasUsedDoubleJump = false;
+    jumpWasPressed = false;
     constructor(scene, x, y, config = {}) {
         const character = config.character ?? createDefaultPlayerCharacter();
         const finalStats = calculateFinalCharacterStats(character.baseStats, character.equipment);
@@ -25,7 +28,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.character = character;
         this.finalStats = finalStats;
         this.characterRenderer = new CharacterRenderer(scene, character, x, y - 28);
-        this.characterRenderer.setScale(8);
+        this.characterRenderer.setScale(3);
         this.setDepth(20);
         this.setCollideWorldBounds(true);
         this.setScale(1.2);
@@ -40,6 +43,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             onDeath: () => this.die()
         });
         body.setGravityY(config.gravity ?? PLAYER_CONFIG.gravity);
+        this.canDoubleJump = true;
+        this.hasUsedDoubleJump = false;
+        this.jumpWasPressed = false;
         this.syncRenderer(0);
     }
     beginAttack(time) {
@@ -85,6 +91,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.state = 'idle';
         this.setTint(0xffffff);
         this.setVelocity(0, 0);
+        this.canDoubleJump = true;
+        this.hasUsedDoubleJump = false;
+        this.jumpWasPressed = false;
         this.syncRenderer(this.scene.time.now);
     }
     updateControls(controls, time) {
@@ -97,6 +106,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
         const body = this.body;
         const moveDirection = controls.left ? -1 : controls.right ? 1 : 0;
+        const jumpPressedThisFrame = controls.jumpPressed && !this.jumpWasPressed;
+        const isRising = !body.blocked.down && body.velocity.y < -10;
+        const isFalling = !body.blocked.down && body.velocity.y > 10;
+        this.jumpWasPressed = controls.jumpPressed;
+        if (body.blocked.down) {
+            this.canDoubleJump = true;
+            this.hasUsedDoubleJump = false;
+        }
         if (moveDirection !== 0) {
             this.setVelocityX(moveDirection * PLAYER_CONFIG.movementSpeed);
             this.facing = moveDirection < 0 ? 'left' : 'right';
@@ -111,14 +128,25 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 this.state = 'idle';
             }
         }
-        if (controls.jumpPressed && body.blocked.down) {
-            this.setVelocityY(-PLAYER_CONFIG.jumpForce);
-            this.state = 'jump';
+        if (jumpPressedThisFrame) {
+            if (body.blocked.down) {
+                this.setVelocityY(-PLAYER_CONFIG.jumpForce);
+                this.state = 'jump';
+                this.canDoubleJump = true;
+                this.hasUsedDoubleJump = false;
+            }
+            else if (this.canDoubleJump && !this.hasUsedDoubleJump && isRising) {
+                const doubleJumpForce = PLAYER_CONFIG.jumpForce * 1.18;
+                this.setVelocityY(-doubleJumpForce);
+                this.state = 'doubleJump';
+                this.canDoubleJump = false;
+                this.hasUsedDoubleJump = true;
+            }
         }
-        if (body.velocity.y < -20) {
-            this.state = 'jump';
+        if (this.state === 'doubleJump' && isFalling) {
+            this.state = 'fall';
         }
-        else if (body.velocity.y > 20 && !body.blocked.down) {
+        else if (this.state === 'jump' && isFalling) {
             this.state = 'fall';
         }
         else if (body.blocked.down && moveDirection === 0) {

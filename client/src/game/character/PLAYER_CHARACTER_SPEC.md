@@ -420,6 +420,14 @@ Every frame must preserve:
 
 Animation must not cause the character to randomly jump between positions because of inconsistent AI-generated framing.
 
+Walk animation sprite sheet rule:
+
+- the walk cycle uses the existing sprite sheet at /assets/characters/player/body/walk.png
+- the asset is a 6-frame horizontal strip: 2400 × 392 px
+- each frame is 400 × 392 px
+- the frame display size must remain fixed during the cycle so the character keeps a stable on-screen scale
+- the walk cycle must loop continuously while the player state is walk/run
+
 ---
 
 ## 15. Future Character Extensibility

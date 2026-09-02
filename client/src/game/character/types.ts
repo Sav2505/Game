@@ -1,4 +1,4 @@
-export type CharacterAnimationState = 'idle' | 'walk' | 'jump' | 'attack' | 'hurt' | 'death';
+export type CharacterAnimationState = 'idle' | 'walk' | 'jump' | 'doubleJump' | 'fall' | 'attack' | 'hurt' | 'death';
 
 export type CharacterFacingDirection = 'left' | 'right';
 

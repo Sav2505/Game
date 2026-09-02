@@ -3,6 +3,7 @@ import { calculateFinalCharacterStats } from './calculateFinalStats';
 import { ensureCharacterTextures } from './ensureCharacterTextures';
 export class CharacterRenderer {
     container;
+    static BODY_TARGET_HEIGHT = 102;
     scene;
     layers = new Map();
     character;
@@ -114,7 +115,7 @@ export class CharacterRenderer {
             const image = this.scene.add.image(layer.x, layer.y, layer.textureKey);
             image.setOrigin(0.5, 0.5);
             if (layer.key === 'body') {
-                image.setDisplaySize(36, 36);
+                this.setBodyDisplaySize(image);
             }
             if (typeof layer.alpha === 'number') {
                 image.setAlpha(layer.alpha);
@@ -131,6 +132,13 @@ export class CharacterRenderer {
                 baseY: layer.y
             });
         }
+    }
+    setBodyDisplaySize(bodyImage) {
+        const sourceWidth = Math.max(1, bodyImage.width);
+        const sourceHeight = Math.max(1, bodyImage.height);
+        const targetHeight = CharacterRenderer.BODY_TARGET_HEIGHT;
+        const targetWidth = Math.max(1, Math.round((sourceWidth / sourceHeight) * targetHeight));
+        bodyImage.setDisplaySize(targetWidth, targetHeight);
     }
     updateLayerTexture(layerKey, textureKey, tintable = false, tintColor) {
         const layer = this.layers.get(layerKey);
@@ -273,17 +281,18 @@ export class CharacterRenderer {
                     backShoe.rotation = backLeg.rotation;
                 }
                 break;
+            case 'doubleJump':
             case 'jump':
-                yOffset = -8;
-                weaponRotation = -0.3;
+                yOffset = this.animationState === 'doubleJump' ? -12 : -8;
+                weaponRotation = this.animationState === 'doubleJump' ? -0.45 : -0.3;
                 nextExpression = 'surprised';
                 if (frontArm) {
-                    frontArm.y = (this.layers.get('frontArm')?.baseY ?? 0) - 4;
-                    frontArm.rotation = -0.3;
+                    frontArm.y = (this.layers.get('frontArm')?.baseY ?? 0) - (this.animationState === 'doubleJump' ? 6 : 4);
+                    frontArm.rotation = this.animationState === 'doubleJump' ? -0.55 : -0.3;
                 }
                 if (backArm) {
-                    backArm.y = (this.layers.get('backArm')?.baseY ?? 0) - 4;
-                    backArm.rotation = 0.25;
+                    backArm.y = (this.layers.get('backArm')?.baseY ?? 0) - (this.animationState === 'doubleJump' ? 6 : 4);
+                    backArm.rotation = this.animationState === 'doubleJump' ? 0.45 : 0.25;
                 }
                 if (frontShoe && frontLeg) {
                     frontShoe.y = frontLeg.y;
@@ -341,8 +350,35 @@ export class CharacterRenderer {
             face.setScale(this.animationState === 'death' ? 0.98 : this.animationState === 'jump' ? 0.96 : 1);
         }
         if (body) {
-            body.setTexture('player-base-body');
-            body.setDisplaySize(36, 36);
+            const bodyAnchorY = 0.72;
+            if (this.animationState === 'walk') {
+                const walkFrameDuration = 200;
+                const frameIndex = Math.floor((time / walkFrameDuration) % 6);
+                body.setTexture('player-walk-spritesheet');
+                body.setFlipX(false);
+                body.setFlipY(false);
+                this.setBodyDisplaySize(body);
+                body.setOrigin(0.5, bodyAnchorY);
+                body.setFrame(frameIndex);
+            }
+            else if (this.animationState === 'doubleJump') {
+                const jumpFrameDuration = 120;
+                const frameIndex = 5 - Math.min(Math.floor((time / jumpFrameDuration) % 6), 5);
+                body.setTexture('player-jump-spritesheet');
+                body.setFlipX(false);
+                body.setFlipY(false);
+                this.setBodyDisplaySize(body);
+                body.setOrigin(0.5, bodyAnchorY);
+                body.setFrame(frameIndex);
+            }
+            else {
+                body.setTexture('player-base-body');
+                body.setFlipX(false);
+                body.setFlipY(false);
+                this.setBodyDisplaySize(body);
+                body.setOrigin(0.5, bodyAnchorY);
+                body.setFrame(0);
+            }
         }
         this.expression = nextExpression;
         this.container.y = this.baseY + yOffset;

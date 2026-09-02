@@ -257,8 +257,35 @@ function ensureImageTexture(scene: Phaser.Scene, key: string, path: string): voi
   image.src = path;
 }
 
+function ensureSpriteSheetTexture(scene: Phaser.Scene, key: string, path: string, frameWidth: number, frameHeight: number, frameCount: number): void {
+  if (scene.textures.exists(key)) {
+    return;
+  }
+
+  const image = new Image();
+  image.onload = (): void => {
+    if (!scene.sys?.renderer || !scene.textures || scene.textures.exists(key)) {
+      return;
+    }
+    scene.textures.addSpriteSheet(key, image, {
+      frameWidth,
+      frameHeight,
+      startFrame: 0,
+      endFrame: frameCount - 1,
+      margin: 0,
+      spacing: 0,
+    });
+  };
+  image.onerror = (): void => {
+    console.warn(`Failed to load sprite sheet: ${path}`);
+  };
+  image.src = path;
+}
+
 export function ensureCharacterTextures(scene: Phaser.Scene): void {
   ensureImageTexture(scene, 'player-base-body', '/assets/characters/player/body/stand.png');
+  ensureSpriteSheetTexture(scene, 'player-walk-spritesheet', '/assets/characters/player/body/walk.png', 400, 392, 6);
+  ensureSpriteSheetTexture(scene, 'player-jump-spritesheet', '/assets/characters/player/body/jump.png', 400, 392, 6);
   generateTexture(scene, 'character-body-base', 96, 96, drawBody);
   generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
   generateTexture(scene, 'character-head-base', 96, 96, drawHead);
