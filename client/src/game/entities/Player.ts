@@ -154,7 +154,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     const moveDirection = controls.left ? -1 : controls.right ? 1 : 0;
     const jumpPressedThisFrame = controls.jumpPressed && !this.jumpWasPressed;
-    const isRising = !body.blocked.down && body.velocity.y < -10;
     const isFalling = !body.blocked.down && body.velocity.y > 10;
     this.jumpWasPressed = controls.jumpPressed;
 
@@ -183,8 +182,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.state = 'jump';
         this.canDoubleJump = true;
         this.hasUsedDoubleJump = false;
-      } else if (this.canDoubleJump && !this.hasUsedDoubleJump && isRising) {
-        const doubleJumpForce = PLAYER_CONFIG.jumpForce * 1.18;
+      } else if (this.canDoubleJump && !this.hasUsedDoubleJump) {
+        const doubleJumpForce = Math.round(PLAYER_CONFIG.jumpForce * PLAYER_CONFIG.doubleJumpMultiplier);
         this.setVelocityY(-doubleJumpForce);
         this.state = 'doubleJump';
         this.canDoubleJump = false;
@@ -224,7 +223,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private syncRenderer(time: number): void {
     this.characterRenderer.setPosition(this.x, this.y - 28);
     this.characterRenderer.setFacingDirection(this.facing as CharacterFacingDirection);
-    const animationState = this.state === 'run' ? 'walk' : this.state;
+    const animationState: CharacterAnimationState =
+      this.state === 'run'
+        ? 'walk'
+        : this.state === 'jump' || this.state === 'fall'
+          ? 'idle'
+          : this.state === 'doubleJump'
+            ? 'jump'
+            : this.state as CharacterAnimationState;
     this.characterRenderer.playAnimation(animationState as CharacterAnimationState);
     this.characterRenderer.update(time);
   }

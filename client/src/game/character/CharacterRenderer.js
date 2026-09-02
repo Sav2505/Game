@@ -116,6 +116,25 @@ export class CharacterRenderer {
             this.lastBodyTextureKey = textureKey;
         }
         body.setFrame(frameIndex);
+        const baseBodyX = this.layers.get('body')?.baseX ?? 0;
+        body.x = baseBodyX + this.getBodyFrameOffsetX(textureKey, frameIndex, body);
+    }
+    getBodyFrameOffsetX(textureKey, frameIndex, body) {
+        if (!this.scene.textures.exists(textureKey)) {
+            return 0;
+        }
+        const texture = this.scene.textures.get(textureKey);
+        const frameOffsets = texture.playerFrameOffsetX;
+        if (!frameOffsets || frameOffsets.length === 0) {
+            return 0;
+        }
+        const sourceOffset = frameOffsets[frameIndex] ?? 0;
+        if (sourceOffset === 0) {
+            return 0;
+        }
+        const sourceFrame = texture.get(frameIndex);
+        const sourceFrameWidth = sourceFrame?.width ?? sourceFrame?.cutWidth ?? 1;
+        return sourceOffset * (body.displayWidth / sourceFrameWidth);
     }
     createDebugText() {
         if (!PLAYER_CHARACTER_DEBUG) {
@@ -212,7 +231,11 @@ export class CharacterRenderer {
         }
     }
     setBodyDisplaySize(bodyImage) {
-        bodyImage.setDisplaySize(PLAYER_CHARACTER_RENDER_CONFIG.bodyDisplayWidth, PLAYER_CHARACTER_RENDER_CONFIG.bodyDisplayHeight);
+        const sourceWidth = Math.max(1, bodyImage.width);
+        const sourceHeight = Math.max(1, bodyImage.height);
+        const targetHeight = PLAYER_CHARACTER_RENDER_CONFIG.bodyDisplayHeight;
+        const targetWidth = Math.max(1, Math.round((sourceWidth / sourceHeight) * targetHeight));
+        bodyImage.setDisplaySize(targetWidth, targetHeight);
     }
     updateLayerTexture(layerKey, textureKey, tintable = false, tintColor) {
         const layer = this.layers.get(layerKey);

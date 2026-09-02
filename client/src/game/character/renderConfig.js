@@ -8,10 +8,10 @@ export const PLAYER_CHARACTER_RENDER_CONFIG = {
     snapToPixels: true,
 };
 export const PLAYER_CHARACTER_ANIMATION_TIMING = {
-    walkFrameMs: 200,
+    walkFrameMs: 180,
     jumpFrameMs: 120,
     fallbackWalkFrameCount: 6,
-    fallbackJumpFrameCount: 6,
+    fallbackJumpFrameCount: 1,
 };
 export const PLAYER_CHARACTER_BODY_TEXTURE_KEYS = {
     stand: 'player-base-body',

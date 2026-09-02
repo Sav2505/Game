@@ -8,6 +8,7 @@ export const REACT_HUD_UPDATE_DISTANCE = 120;
 export const PLAYER_CONFIG = {
   movementSpeed: 260,
   jumpForce: 560,
+  doubleJumpMultiplier: 1.3,
   gravity: 1200,
   maxHp: 100,
   attackDamage: 20,

@@ -3,6 +3,8 @@ const PREFERRED_FRAME_WIDTH = 512;
 const PREFERRED_FRAME_HEIGHT = 512;
 const LEGACY_FRAME_WIDTH = 400;
 const LEGACY_FRAME_HEIGHT = 392;
+const SPRITESHEET_EXTRUDE_PADDING = 1;
+const SPRITESHEET_EXTRUDE_SPACING = 2;
 function generateTexture(scene, key, width, height, draw) {
     if (scene.textures.exists(key)) {
         scene.textures.remove(key);
@@ -255,6 +257,68 @@ function detectSheetFrameSpec(image, expectedFrameCount) {
         frameCount: Math.max(1, expectedFrameCount),
     };
 }
+function computeFrameHorizontalOffsets(image, spec) {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) {
+        return new Array(spec.frameCount).fill(0);
+    }
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0);
+    const frameCenters = [];
+    for (let frameIndex = 0; frameIndex < spec.frameCount; frameIndex += 1) {
+        const frameX = frameIndex * spec.frameWidth;
+        const frameData = context.getImageData(frameX, 0, spec.frameWidth, spec.frameHeight).data;
+        let minX = spec.frameWidth;
+        let maxX = -1;
+        for (let y = 0; y < spec.frameHeight; y += 1) {
+            const rowOffset = y * spec.frameWidth * 4;
+            for (let x = 0; x < spec.frameWidth; x += 1) {
+                const alpha = frameData[rowOffset + (x * 4) + 3] ?? 0;
+                if (alpha > 8) {
+                    if (x < minX) {
+                        minX = x;
+                    }
+                    if (x > maxX) {
+                        maxX = x;
+                    }
+                }
+            }
+        }
+        const center = maxX >= minX ? (minX + maxX) * 0.5 : spec.frameWidth * 0.5;
+        frameCenters.push(center);
+    }
+    const referenceCenter = frameCenters.reduce((sum, center) => sum + center, 0) / Math.max(1, frameCenters.length);
+    return frameCenters.map((center) => Math.round((referenceCenter - center) * 100) / 100);
+}
+function buildExtrudedSpriteSheetSource(image, spec) {
+    const margin = SPRITESHEET_EXTRUDE_PADDING;
+    const spacing = SPRITESHEET_EXTRUDE_SPACING;
+    const canvas = document.createElement('canvas');
+    canvas.width = (margin * 2) + (spec.frameCount * spec.frameWidth) + ((spec.frameCount - 1) * spacing);
+    canvas.height = (margin * 2) + spec.frameHeight;
+    const context = canvas.getContext('2d');
+    if (!context) {
+        return canvas;
+    }
+    for (let frameIndex = 0; frameIndex < spec.frameCount; frameIndex += 1) {
+        const srcX = frameIndex * spec.frameWidth;
+        const destX = margin + (frameIndex * (spec.frameWidth + spacing));
+        const destY = margin;
+        context.drawImage(image, srcX, 0, spec.frameWidth, spec.frameHeight, destX, destY, spec.frameWidth, spec.frameHeight);
+        context.drawImage(image, srcX, 0, 1, spec.frameHeight, destX - 1, destY, 1, spec.frameHeight);
+        context.drawImage(image, srcX + spec.frameWidth - 1, 0, 1, spec.frameHeight, destX + spec.frameWidth, destY, 1, spec.frameHeight);
+        context.drawImage(image, srcX, 0, spec.frameWidth, 1, destX, destY - 1, spec.frameWidth, 1);
+        context.drawImage(image, srcX, spec.frameHeight - 1, spec.frameWidth, 1, destX, destY + spec.frameHeight, spec.frameWidth, 1);
+        context.drawImage(image, srcX, 0, 1, 1, destX - 1, destY - 1, 1, 1);
+        context.drawImage(image, srcX + spec.frameWidth - 1, 0, 1, 1, destX + spec.frameWidth, destY - 1, 1, 1);
+        context.drawImage(image, srcX, spec.frameHeight - 1, 1, 1, destX - 1, destY + spec.frameHeight, 1, 1);
+        context.drawImage(image, srcX + spec.frameWidth - 1, spec.frameHeight - 1, 1, 1, destX + spec.frameWidth, destY + spec.frameHeight, 1, 1);
+    }
+    return canvas;
+}
 function ensureBodySpriteSheetTexture(scene, key, path, expectedFrameCount) {
     if (scene.textures.exists(key)) {
         return;
@@ -268,14 +332,17 @@ function ensureBodySpriteSheetTexture(scene, key, path, expectedFrameCount) {
         if (spec.frameCount !== expectedFrameCount) {
             console.warn(`[character] ${key} expected ${expectedFrameCount} frames, detected ${spec.frameCount} (${image.width}x${image.height}).`);
         }
-        scene.textures.addSpriteSheet(key, image, {
+        const extrudedSource = buildExtrudedSpriteSheetSource(image, spec);
+        scene.textures.addSpriteSheet(key, extrudedSource, {
             frameWidth: spec.frameWidth,
             frameHeight: spec.frameHeight,
             startFrame: 0,
             endFrame: Math.max(0, spec.frameCount - 1),
-            margin: 0,
-            spacing: 0,
+            margin: SPRITESHEET_EXTRUDE_PADDING,
+            spacing: SPRITESHEET_EXTRUDE_SPACING,
         });
+        const texture = scene.textures.get(key);
+        texture.playerFrameOffsetX = computeFrameHorizontalOffsets(image, spec);
     };
     image.onerror = () => {
         console.warn(`Failed to load sprite sheet: ${path}`);
@@ -285,7 +352,7 @@ function ensureBodySpriteSheetTexture(scene, key, path, expectedFrameCount) {
 export function ensureCharacterTextures(scene) {
     ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.stand, '/assets/characters/player/body/stand.png');
     ensureBodySpriteSheetTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.walk, '/assets/characters/player/body/walk.png', PLAYER_CHARACTER_ANIMATION_TIMING.fallbackWalkFrameCount);
-    ensureBodySpriteSheetTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.jump, '/assets/characters/player/body/jump.png', PLAYER_CHARACTER_ANIMATION_TIMING.fallbackJumpFrameCount);
+    ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.jump, '/assets/characters/player/body/jump.png');
     generateTexture(scene, 'character-body-base', 96, 96, drawBody);
     generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
     generateTexture(scene, 'character-head-base', 96, 96, drawHead);
