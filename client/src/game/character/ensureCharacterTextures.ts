@@ -246,6 +246,9 @@ function ensureImageTexture(scene: Phaser.Scene, key: string, path: string): voi
 
   const image = new Image();
   image.onload = (): void => {
+    if (!scene.sys?.renderer || !scene.textures || scene.textures.exists(key)) {
+      return;
+    }
     scene.textures.addImage(key, image);
   };
   image.onerror = (): void => {
@@ -254,28 +257,8 @@ function ensureImageTexture(scene: Phaser.Scene, key: string, path: string): voi
   image.src = path;
 }
 
-function ensureSpriteSheet(scene: Phaser.Scene, key: string, path: string, frameWidth: number, frameHeight: number, endFrame: number): void {
-  if (scene.textures.exists(key)) {
-    return;
-  }
-
-  const image = new Image();
-  image.onload = (): void => {
-    scene.textures.addSpriteSheet(key, image, {
-      frameWidth,
-      frameHeight,
-      endFrame,
-    });
-  };
-  image.onerror = (): void => {
-    console.warn(`Failed to load sprite sheet: ${path}`);
-  };
-  image.src = path;
-}
-
 export function ensureCharacterTextures(scene: Phaser.Scene): void {
   ensureImageTexture(scene, 'player-base-body', '/assets/characters/player/body/base_body.png');
-  ensureSpriteSheet(scene, 'player-walk-sprite', '/assets/characters/player/body/walking.png', 508, 416, 4);
   generateTexture(scene, 'character-body-base', 96, 96, drawBody);
   generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
   generateTexture(scene, 'character-head-base', 96, 96, drawHead);

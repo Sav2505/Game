@@ -25,7 +25,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.character = character;
         this.finalStats = finalStats;
         this.characterRenderer = new CharacterRenderer(scene, character, x, y - 28);
-        this.characterRenderer.setScale(1.0);
+        this.characterRenderer.setScale(8);
         this.setDepth(20);
         this.setCollideWorldBounds(true);
         this.setScale(1.2);

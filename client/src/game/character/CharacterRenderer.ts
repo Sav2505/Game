@@ -421,13 +421,8 @@ export class CharacterRenderer {
     }
 
     if (body) {
-      if (this.animationState === 'walk') {
-        body.setTexture('player-walk-sprite', Math.floor(time / 80) % 5);
-        body.setDisplaySize(220, 220);
-      } else {
-        body.setTexture('player-base-body');
-        body.setDisplaySize(36, 36);
-      }
+      body.setTexture('player-base-body');
+      body.setDisplaySize(36, 36);
     }
 
     this.expression = nextExpression;

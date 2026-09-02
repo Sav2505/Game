@@ -219,6 +219,9 @@ function ensureImageTexture(scene, key, path) {
     }
     const image = new Image();
     image.onload = () => {
+        if (!scene.sys?.renderer || !scene.textures || scene.textures.exists(key)) {
+            return;
+        }
         scene.textures.addImage(key, image);
     };
     image.onerror = () => {
@@ -226,26 +229,8 @@ function ensureImageTexture(scene, key, path) {
     };
     image.src = path;
 }
-function ensureSpriteSheet(scene, key, path, frameWidth, frameHeight, endFrame) {
-    if (scene.textures.exists(key)) {
-        return;
-    }
-    const image = new Image();
-    image.onload = () => {
-        scene.textures.addSpriteSheet(key, image, {
-            frameWidth,
-            frameHeight,
-            endFrame,
-        });
-    };
-    image.onerror = () => {
-        console.warn(`Failed to load sprite sheet: ${path}`);
-    };
-    image.src = path;
-}
 export function ensureCharacterTextures(scene) {
     ensureImageTexture(scene, 'player-base-body', '/assets/characters/player/body/base_body.png');
-    ensureSpriteSheet(scene, 'player-walk-sprite', '/assets/characters/player/body/walking.png', 508, 416, 4);
     generateTexture(scene, 'character-body-base', 96, 96, drawBody);
     generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
     generateTexture(scene, 'character-head-base', 96, 96, drawHead);
