@@ -43,8 +43,8 @@ export class CharacterShowcaseScene extends Phaser.Scene {
       color: '#aab6d6'
     }).setDepth(5);
 
-    this.characterRenderer = new CharacterRenderer(this, characterStore.getState().character, width * 0.5, height * 0.82);
-    this.characterRenderer.setScale(5.2);
+    this.characterRenderer = new CharacterRenderer(this, characterStore.getState().character, width * 0.5, height * 0.78);
+    this.characterRenderer.setScale(1.45);
     this.characterRenderer.setFacingDirection('right');
     this.characterRenderer.playAnimation('idle');
 
@@ -105,7 +105,7 @@ export class CharacterShowcaseScene extends Phaser.Scene {
     }
 
     const bob = Math.sin(time / 220) * 2;
-    this.characterRenderer.setPosition(this.scale.width * 0.5, this.scale.height * 0.82 + bob);
+    this.characterRenderer.setPosition(this.scale.width * 0.5, this.scale.height * 0.78 + bob);
     this.characterRenderer.update(time);
   }
 }

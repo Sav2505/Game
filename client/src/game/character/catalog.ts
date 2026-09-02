@@ -70,10 +70,10 @@ export const DEMO_EQUIPMENT_SLOT_MAP: Record<string, EquipmentItem> = {
 };
 
 export const DEFAULT_CHARACTER_APPEARANCE: CharacterAppearance = {
-  body: 'character-torso-base',
+  body: 'character-body-base',
   face: 'character-face-idle',
   hair: 'character-hair-default',
-  hairColor: '#5a3727',
+  hairColor: '#77543f',
   skinColor: '#f2c49c'
 };
 

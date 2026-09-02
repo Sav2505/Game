@@ -14,6 +14,8 @@ type LayerKey =
   | 'cape'
   | 'backLeg'
   | 'frontLeg'
+  | 'backShoe'
+  | 'frontShoe'
   | 'torso'
   | 'backArm'
   | 'frontArm'
@@ -21,7 +23,6 @@ type LayerKey =
   | 'body'
   | 'top'
   | 'pants'
-  | 'shoes'
   | 'gloves'
   | 'face'
   | 'hair'
@@ -99,7 +100,7 @@ export class CharacterRenderer {
 
   public setAppearance(characterAppearance: PlayerCharacter['appearance']): void {
     this.updateLayerTexture('body', characterAppearance.body, true, characterAppearance.skinColor);
-    this.updateLayerTexture('torso', characterAppearance.body, true, characterAppearance.skinColor);
+    this.updateLayerTexture('torso', 'character-torso-base', false);
     this.updateLayerTexture('head', 'character-head-base', true, characterAppearance.skinColor);
     this.updateLayerTexture('face', characterAppearance.face, true);
     this.updateLayerTexture('hair', characterAppearance.hair, true, characterAppearance.hairColor);
@@ -119,7 +120,8 @@ export class CharacterRenderer {
     this.updateEquipmentLayer('helmet', nextEquipment.helmet ?? null);
     this.updateEquipmentLayer('top', nextEquipment.top ?? null);
     this.updateEquipmentLayer('pants', nextEquipment.pants ?? null);
-    this.updateEquipmentLayer('shoes', nextEquipment.shoes ?? null);
+    this.updateEquipmentLayer('backShoe', nextEquipment.shoes ?? null);
+    this.updateEquipmentLayer('frontShoe', nextEquipment.shoes ?? null);
     this.updateEquipmentLayer('gloves', nextEquipment.gloves ?? null);
     this.updateEquipmentLayer('cape', nextEquipment.cape ?? null);
     this.updateEquipmentLayer('weapon', nextEquipment.weapon ?? null);
@@ -146,25 +148,26 @@ export class CharacterRenderer {
 
   private buildLayers(): void {
     const layerOrder: Array<{ key: LayerKey; textureKey: string; x: number; y: number; scale?: number; alpha?: number }> = [
-      { key: 'shadow', textureKey: 'character-shadow', x: 0, y: 62, alpha: 0.9, scale: 1 },
-      { key: 'cape', textureKey: 'character-cape-red', x: -8, y: 4, scale: 1.08 },
-      { key: 'body', textureKey: 'character-body-base', x: 0, y: 0, scale: 0.92 },
-      { key: 'backLeg', textureKey: 'character-leg-base', x: -12, y: 28, scale: 1.06 },
-      { key: 'pants', textureKey: 'character-pants-basic', x: 0, y: 22, scale: 1.0 },
-      { key: 'backArm', textureKey: 'character-arm-base', x: -24, y: -2, scale: 1.02 },
-      { key: 'torso', textureKey: 'character-torso-base', x: 0, y: 0, scale: 1.02 },
-      { key: 'top', textureKey: 'character-top-basic', x: 0, y: 0, scale: 1.02 },
-      { key: 'gloves', textureKey: 'character-gloves-basic', x: 0, y: 0, scale: 1.02 },
-      { key: 'frontArm', textureKey: 'character-arm-base', x: 24, y: -2, scale: 1.02 },
-      { key: 'frontLeg', textureKey: 'character-leg-base', x: 12, y: 28, scale: 1.06 },
-      { key: 'shoes', textureKey: 'character-shoes-basic', x: 0, y: 50, scale: 1.08 },
-      { key: 'head', textureKey: 'character-head-base', x: 0, y: -38, scale: 1.24 },
-      { key: 'face', textureKey: 'character-face-idle', x: 1, y: -37, scale: 1.3 },
-      { key: 'hair', textureKey: 'character-hair-default', x: 0, y: -44, scale: 1.18 },
-      { key: 'helmet', textureKey: 'character-helmet-basic', x: 0, y: -42, scale: 1.14 },
-      { key: 'accessory', textureKey: 'character-accessory-star', x: 16, y: -24, scale: 1.08 },
-      { key: 'weapon', textureKey: 'character-weapon-wooden-sword', x: 32, y: 12, scale: 1.08 },
-      { key: 'effect', textureKey: 'character-effect-glow', x: 0, y: -6, alpha: 0, scale: 1.08 }
+      { key: 'shadow', textureKey: 'character-shadow', x: 0, y: 66, alpha: 0.85, scale: 1 },
+      { key: 'cape', textureKey: 'character-cape-red', x: -10, y: 12, scale: 1 },
+      { key: 'backLeg', textureKey: 'character-leg-base', x: -10, y: 30, scale: 1 },
+      { key: 'frontLeg', textureKey: 'character-leg-base', x: 10, y: 30, scale: 1 },
+      { key: 'backShoe', textureKey: 'character-shoes-basic', x: -10, y: 30, scale: 1 },
+      { key: 'frontShoe', textureKey: 'character-shoes-basic', x: 10, y: 30, scale: 1 },
+      { key: 'pants', textureKey: 'character-pants-basic', x: 0, y: 26, scale: 1 },
+      { key: 'body', textureKey: 'character-body-base', x: 0, y: 8, scale: 1 },
+      { key: 'backArm', textureKey: 'character-arm-base', x: -23, y: 6, scale: 1 },
+      { key: 'torso', textureKey: 'character-torso-base', x: 0, y: 8, scale: 1 },
+      { key: 'top', textureKey: 'character-top-basic', x: 0, y: 8, scale: 1 },
+      { key: 'gloves', textureKey: 'character-gloves-basic', x: 0, y: 6, scale: 1 },
+      { key: 'frontArm', textureKey: 'character-arm-base', x: 23, y: 6, scale: 1 },
+      { key: 'head', textureKey: 'character-head-base', x: 0, y: -28, scale: 1 },
+      { key: 'face', textureKey: 'character-face-idle', x: 0, y: -28, scale: 1 },
+      { key: 'hair', textureKey: 'character-hair-default', x: 0, y: -33, scale: 1 },
+      { key: 'helmet', textureKey: 'character-helmet-basic', x: 0, y: -36, scale: 1 },
+      { key: 'accessory', textureKey: 'character-accessory-star', x: 16, y: -10, scale: 1 },
+      { key: 'weapon', textureKey: 'character-weapon-wooden-sword', x: 34, y: 14, scale: 1 },
+      { key: 'effect', textureKey: 'character-effect-glow', x: 0, y: 8, alpha: 0, scale: 1 }
     ];
 
     for (const layer of layerOrder) {
@@ -224,6 +227,8 @@ export class CharacterRenderer {
     const backArm = this.layers.get('backArm')?.image;
     const frontLeg = this.layers.get('frontLeg')?.image;
     const backLeg = this.layers.get('backLeg')?.image;
+    const frontShoe = this.layers.get('frontShoe')?.image;
+    const backShoe = this.layers.get('backShoe')?.image;
     const head = this.layers.get('head')?.image;
 
     const walkBob = Math.sin(time / 140) * 2;
@@ -237,6 +242,8 @@ export class CharacterRenderer {
     const frontArmBase = this.layers.get('frontArm')?.baseX ?? 0;
     const backLegBase = this.layers.get('backLeg')?.baseX ?? 0;
     const frontLegBase = this.layers.get('frontLeg')?.baseX ?? 0;
+    const backShoeBase = this.layers.get('backShoe')?.baseX ?? 0;
+    const frontShoeBase = this.layers.get('frontShoe')?.baseX ?? 0;
     const weaponBase = this.layers.get('weapon')?.baseX ?? 0;
     const headBase = this.layers.get('head')?.baseY ?? 0;
 
@@ -244,6 +251,8 @@ export class CharacterRenderer {
     const frontArmImage = resetImage('frontArm');
     const backLegImage = resetImage('backLeg');
     const frontLegImage = resetImage('frontLeg');
+    const backShoeImage = resetImage('backShoe');
+    const frontShoeImage = resetImage('frontShoe');
     const weaponImage = resetImage('weapon');
     const headImage = resetImage('head');
 
@@ -266,6 +275,16 @@ export class CharacterRenderer {
       frontLegImage.x = frontLegBase;
       frontLegImage.y = this.layers.get('frontLeg')?.baseY ?? frontLegImage.y;
       frontLegImage.rotation = 0;
+    }
+    if (backShoeImage) {
+      backShoeImage.x = backShoeBase;
+      backShoeImage.y = this.layers.get('backShoe')?.baseY ?? backShoeImage.y;
+      backShoeImage.rotation = 0;
+    }
+    if (frontShoeImage) {
+      frontShoeImage.x = frontShoeBase;
+      frontShoeImage.y = this.layers.get('frontShoe')?.baseY ?? frontShoeImage.y;
+      frontShoeImage.rotation = 0;
     }
     if (weaponImage) {
       weaponImage.x = weaponBase;
@@ -302,6 +321,14 @@ export class CharacterRenderer {
           backLeg.y = (this.layers.get('backLeg')?.baseY ?? 0) - Math.sin(time / 120) * 3;
           backLeg.rotation = walkSwing * 0.012;
         }
+        if (frontShoe && frontLeg) {
+          frontShoe.y = frontLeg.y;
+          frontShoe.rotation = frontLeg.rotation;
+        }
+        if (backShoe && backLeg) {
+          backShoe.y = backLeg.y;
+          backShoe.rotation = backLeg.rotation;
+        }
         break;
       case 'jump':
         yOffset = -8;
@@ -314,6 +341,14 @@ export class CharacterRenderer {
         if (backArm) {
           backArm.y = (this.layers.get('backArm')?.baseY ?? 0) - 4;
           backArm.rotation = 0.25;
+        }
+        if (frontShoe && frontLeg) {
+          frontShoe.y = frontLeg.y;
+          frontShoe.rotation = frontLeg.rotation;
+        }
+        if (backShoe && backLeg) {
+          backShoe.y = backLeg.y;
+          backShoe.rotation = backLeg.rotation;
         }
         break;
       case 'attack':
@@ -362,7 +397,7 @@ export class CharacterRenderer {
                 ? 'character-face-dead'
                 : 'character-face-idle';
       face.setTexture(faceKey);
-      face.setScale(this.animationState === 'death' ? 1.22 : this.animationState === 'jump' ? 1.16 : 1.28);
+      face.setScale(this.animationState === 'death' ? 0.98 : this.animationState === 'jump' ? 0.96 : 1);
     }
     this.expression = nextExpression;
 
@@ -385,7 +420,7 @@ export class CharacterRenderer {
 
     if (head) {
       head.y = headBase + (this.animationState === 'jump' ? -3 : 0);
-      head.setScale(this.animationState === 'death' ? 1.16 : 1.24);
+      head.setScale(this.animationState === 'death' ? 0.98 : 1);
     }
   }
 }

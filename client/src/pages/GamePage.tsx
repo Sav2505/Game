@@ -21,7 +21,7 @@ export function GamePage({ onReturnToMenu }: GamePageProps) {
         </button>
       </div>
       <GameCanvas initialSceneKey="GameScene" />
-      <Hud />
+      {/* <Hud /> */}
       <DialoguePanel />
       <QuestPanel />
       <DeathOverlay />
