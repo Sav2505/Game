@@ -239,7 +239,23 @@ function drawShadow(graphics: Phaser.GameObjects.Graphics): void {
   graphics.fillEllipse(48, 40, 68, 16);
 }
 
+function ensureImageTexture(scene: Phaser.Scene, key: string, path: string): void {
+  if (scene.textures.exists(key)) {
+    return;
+  }
+
+  const image = new Image();
+  image.onload = (): void => {
+    scene.textures.addImage(key, image);
+  };
+  image.onerror = (): void => {
+    console.warn(`Failed to load character texture: ${path}`);
+  };
+  image.src = path;
+}
+
 export function ensureCharacterTextures(scene: Phaser.Scene): void {
+  ensureImageTexture(scene, 'player-base-body', '/assets/characters/player/body/base_body.png');
   generateTexture(scene, 'character-body-base', 96, 96, drawBody);
   generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
   generateTexture(scene, 'character-head-base', 96, 96, drawHead);

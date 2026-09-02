@@ -1,0 +1,153 @@
+import Phaser from 'phaser';
+import { CharacterRenderer } from '@/game/character/CharacterRenderer';
+import { createDefaultPlayerCharacter } from '@/game/character/catalog';
+import { calculateFinalCharacterStats } from '@/game/character/calculateFinalStats';
+import { PLAYER_CONFIG } from '@/game/config/constants';
+import { HealthComponent } from '@/game/systems/HealthComponent';
+export class Player extends Phaser.Physics.Arcade.Sprite {
+    id = 'player-1';
+    character;
+    characterRenderer;
+    finalStats;
+    health;
+    attackDamage;
+    attackCooldown;
+    facing = 'right';
+    state = 'idle';
+    lastAttackTime = -Infinity;
+    hurtUntil = 0;
+    constructor(scene, x, y, config = {}) {
+        const character = config.character ?? createDefaultPlayerCharacter();
+        const finalStats = calculateFinalCharacterStats(character.baseStats, character.equipment);
+        super(scene, x, y, character.appearance.body);
+        scene.add.existing(this);
+        scene.physics.add.existing(this);
+        this.character = character;
+        this.finalStats = finalStats;
+        this.characterRenderer = new CharacterRenderer(scene, character, x, y - 28);
+        this.characterRenderer.setScale(1.45);
+        this.setDepth(20);
+        this.setCollideWorldBounds(true);
+        this.setScale(1.2);
+        this.setVisible(false);
+        const body = this.body;
+        body.setSize(34, 52, true);
+        body.setMaxVelocity(360, 900);
+        body.setDragX(1400);
+        this.attackDamage = config.attackDamage ?? finalStats.attack;
+        this.attackCooldown = config.attackCooldown ?? PLAYER_CONFIG.attackCooldown;
+        this.health = new HealthComponent(config.maxHp ?? finalStats.maxHp, {
+            onDeath: () => this.die()
+        });
+        body.setGravityY(config.gravity ?? PLAYER_CONFIG.gravity);
+        this.syncRenderer(0);
+    }
+    beginAttack(time) {
+        if (this.isDead || time < this.lastAttackTime + this.attackCooldown) {
+            return false;
+        }
+        this.lastAttackTime = time;
+        this.state = 'attack';
+        this.setTint(0xffe07a);
+        this.setVelocityX(0);
+        this.syncRenderer(time);
+        return true;
+    }
+    takeDamage(amount) {
+        const died = this.health.takeDamage(amount);
+        if (!died) {
+            this.state = 'hurt';
+            this.hurtUntil = this.scene.time.now + 180;
+            this.setTint(0xff7f93);
+        }
+        this.syncRenderer(this.scene.time.now);
+        return died;
+    }
+    applyDamageKnockback(fromX) {
+        const direction = this.x >= fromX ? 1 : -1;
+        this.setVelocityX(160 * direction);
+        this.setVelocityY(-120);
+        this.syncRenderer(this.scene.time.now);
+    }
+    die() {
+        this.state = 'dead';
+        this.setVelocity(0, 0);
+        this.setTint(0x8e94aa);
+        this.disableBody(true, false);
+        this.syncRenderer(this.scene.time.now);
+        this.emit('death');
+    }
+    respawn(x, y, maxHp) {
+        this.enableBody(true, x, y, true, true);
+        this.health.maxHP = maxHp;
+        this.health.currentHP = maxHp;
+        this.health.isDead = false;
+        this.state = 'idle';
+        this.setTint(0xffffff);
+        this.setVelocity(0, 0);
+        this.syncRenderer(this.scene.time.now);
+    }
+    updateControls(controls, time) {
+        if (this.isDead) {
+            return;
+        }
+        if (time < this.hurtUntil && this.state === 'hurt') {
+            this.syncRenderer(time);
+            return;
+        }
+        const body = this.body;
+        const moveDirection = controls.left ? -1 : controls.right ? 1 : 0;
+        if (moveDirection !== 0) {
+            this.setVelocityX(moveDirection * PLAYER_CONFIG.movementSpeed);
+            this.facing = moveDirection < 0 ? 'left' : 'right';
+            this.setFlipX(this.facing === 'left');
+            if (body.blocked.down) {
+                this.state = 'run';
+            }
+        }
+        else {
+            this.setVelocityX(0);
+            if (body.blocked.down) {
+                this.state = 'idle';
+            }
+        }
+        if (controls.jumpPressed && body.blocked.down) {
+            this.setVelocityY(-PLAYER_CONFIG.jumpForce);
+            this.state = 'jump';
+        }
+        if (body.velocity.y < -20) {
+            this.state = 'jump';
+        }
+        else if (body.velocity.y > 20 && !body.blocked.down) {
+            this.state = 'fall';
+        }
+        else if (body.blocked.down && moveDirection === 0) {
+            this.state = 'idle';
+        }
+        if (controls.attackPressed) {
+            this.beginAttack(time);
+        }
+        if (time >= this.lastAttackTime + 120 && this.state === 'attack') {
+            this.state = body.blocked.down ? 'idle' : 'fall';
+            this.clearTint();
+        }
+        if (time >= this.hurtUntil && this.state === 'hurt') {
+            this.state = body.blocked.down ? 'idle' : 'fall';
+            this.clearTint();
+        }
+        this.syncRenderer(time);
+    }
+    get isDead() {
+        return this.health.isDead;
+    }
+    syncRenderer(time) {
+        this.characterRenderer.setPosition(this.x, this.y - 28);
+        this.characterRenderer.setFacingDirection(this.facing);
+        this.characterRenderer.playAnimation(this.state);
+        this.characterRenderer.update(time);
+    }
+    destroy(fromScene) {
+        this.characterRenderer.destroy();
+        super.destroy(fromScene);
+    }
+}

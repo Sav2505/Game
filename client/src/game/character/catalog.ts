@@ -70,7 +70,7 @@ export const DEMO_EQUIPMENT_SLOT_MAP: Record<string, EquipmentItem> = {
 };
 
 export const DEFAULT_CHARACTER_APPEARANCE: CharacterAppearance = {
-  body: 'character-body-base',
+  body: 'player-base-body',
   face: 'character-face-idle',
   hair: 'character-hair-default',
   hairColor: '#77543f',
@@ -90,11 +90,7 @@ export const DEFAULT_CHARACTER_STATS: CharacterStats = {
   maxMp: 30
 };
 
-export const DEFAULT_CHARACTER_EQUIPMENT: CharacterEquipment = {
-  top: DEMO_EQUIPMENT.basicShirt,
-  shoes: DEMO_EQUIPMENT.leatherBoots,
-  weapon: DEMO_EQUIPMENT.woodenSword
-};
+export const DEFAULT_CHARACTER_EQUIPMENT: CharacterEquipment = {};
 
 export function createDefaultPlayerCharacter(): PlayerCharacter {
   return {

@@ -44,7 +44,7 @@ export class CharacterShowcaseScene extends Phaser.Scene {
     }).setDepth(5);
 
     this.characterRenderer = new CharacterRenderer(this, characterStore.getState().character, width * 0.5, height * 0.78);
-    this.characterRenderer.setScale(1.45);
+    this.characterRenderer.setScale(0.7);
     this.characterRenderer.setFacingDirection('right');
     this.characterRenderer.playAnimation('idle');
 

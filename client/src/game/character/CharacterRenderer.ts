@@ -99,11 +99,14 @@ export class CharacterRenderer {
   }
 
   public setAppearance(characterAppearance: PlayerCharacter['appearance']): void {
-    this.updateLayerTexture('body', characterAppearance.body, true, characterAppearance.skinColor);
-    this.updateLayerTexture('torso', 'character-torso-base', false);
-    this.updateLayerTexture('head', 'character-head-base', true, characterAppearance.skinColor);
-    this.updateLayerTexture('face', characterAppearance.face, true);
-    this.updateLayerTexture('hair', characterAppearance.hair, true, characterAppearance.hairColor);
+    this.updateLayerTexture('body', characterAppearance.body, false);
+    this.layers.get('shadow')?.image.setVisible(true);
+    this.layers.get('body')?.image.setVisible(true);
+
+    const placeholderLayerKeys: LayerKey[] = ['torso', 'head', 'face', 'hair', 'backArm', 'frontArm', 'backLeg', 'frontLeg', 'backShoe', 'frontShoe', 'cape', 'top', 'pants', 'gloves', 'helmet', 'accessory', 'weapon', 'effect'];
+    for (const key of placeholderLayerKeys) {
+      this.layers.get(key)?.image.setVisible(false);
+    }
   }
 
   public setEquipment(equipmentPatch: Partial<CharacterEquipment>): void {
@@ -155,7 +158,7 @@ export class CharacterRenderer {
       { key: 'backShoe', textureKey: 'character-shoes-basic', x: -10, y: 30, scale: 1 },
       { key: 'frontShoe', textureKey: 'character-shoes-basic', x: 10, y: 30, scale: 1 },
       { key: 'pants', textureKey: 'character-pants-basic', x: 0, y: 26, scale: 1 },
-      { key: 'body', textureKey: 'character-body-base', x: 0, y: 8, scale: 1 },
+      { key: 'body', textureKey: 'player-base-body', x: 0, y: 8, scale: 1 },
       { key: 'backArm', textureKey: 'character-arm-base', x: -23, y: 6, scale: 1 },
       { key: 'torso', textureKey: 'character-torso-base', x: 0, y: 8, scale: 1 },
       { key: 'top', textureKey: 'character-top-basic', x: 0, y: 8, scale: 1 },
@@ -173,12 +176,17 @@ export class CharacterRenderer {
     for (const layer of layerOrder) {
       const image = this.scene.add.image(layer.x, layer.y, layer.textureKey);
       image.setOrigin(0.5, 0.5);
+      if (layer.key === 'body') {
+        image.setDisplaySize(52, 52);
+      }
       if (typeof layer.alpha === 'number') {
         image.setAlpha(layer.alpha);
       }
       if (typeof layer.scale === 'number') {
         image.setScale(layer.scale);
       }
+      const isVisibleBaseLayer = layer.key === 'shadow' || layer.key === 'body';
+      image.setVisible(isVisibleBaseLayer);
       this.container.add(image);
       this.layers.set(layer.key, {
         image,
@@ -194,6 +202,11 @@ export class CharacterRenderer {
       return;
     }
 
+    if (layerKey !== 'body' && layerKey !== 'shadow') {
+      layer.image.setVisible(false);
+      return;
+    }
+
     layer.image.setTexture(textureKey);
     layer.image.setVisible(true);
     if (tintable && tintColor) {
@@ -206,6 +219,12 @@ export class CharacterRenderer {
   private updateEquipmentLayer(slot: LayerKey, item: EquipmentItem | null): void {
     const layer = this.layers.get(slot);
     if (!layer) {
+      return;
+    }
+
+    const placeholderSlots: LayerKey[] = ['cape', 'pants', 'backShoe', 'frontShoe', 'top', 'helmet', 'weapon', 'accessory', 'gloves'];
+    if (placeholderSlots.includes(slot)) {
+      layer.image.setVisible(false);
       return;
     }
 
