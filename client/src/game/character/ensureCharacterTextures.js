@@ -230,7 +230,7 @@ function ensureImageTexture(scene, key, path) {
     image.src = path;
 }
 export function ensureCharacterTextures(scene) {
-    ensureImageTexture(scene, 'player-base-body', '/assets/characters/player/body/base_body.png');
+    ensureImageTexture(scene, 'player-base-body', '/assets/characters/player/body/stand.png');
     generateTexture(scene, 'character-body-base', 96, 96, drawBody);
     generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
     generateTexture(scene, 'character-head-base', 96, 96, drawHead);

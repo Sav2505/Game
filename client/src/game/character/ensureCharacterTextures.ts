@@ -258,7 +258,7 @@ function ensureImageTexture(scene: Phaser.Scene, key: string, path: string): voi
 }
 
 export function ensureCharacterTextures(scene: Phaser.Scene): void {
-  ensureImageTexture(scene, 'player-base-body', '/assets/characters/player/body/base_body.png');
+  ensureImageTexture(scene, 'player-base-body', '/assets/characters/player/body/stand.png');
   generateTexture(scene, 'character-body-base', 96, 96, drawBody);
   generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
   generateTexture(scene, 'character-head-base', 96, 96, drawHead);

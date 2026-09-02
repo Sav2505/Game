@@ -97,7 +97,7 @@ Do not randomly resize individual equipment assets or create inconsistent framin
 
 The approved base body is the canonical body layer for the main player character:
 
-- File: client/public/assets/characters/player/body/base_body.png
+- File: client/public/assets/characters/player/body/stand.png
 - Format: PNG
 - Background: transparent
 - Role: underlying body foundation only
