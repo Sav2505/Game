@@ -20,7 +20,7 @@ export class CharacterShowcaseScene extends Phaser.Scene {
             fontSize: '28px',
             color: '#fff7d5'
         }).setDepth(5);
-        this.add.text(32, 64, '1-5 toggle demo equipment | arrows face | A/D animate | Z=death pose', {
+        this.add.text(32, 64, '1=top 2=helmet 3=weapon 4=shoes 5=cape 6=pants | arrows face | A/D animate | Z=death pose', {
             fontFamily: 'Inter, sans-serif',
             fontSize: '15px',
             color: '#aab6d6'
@@ -44,6 +44,7 @@ export class CharacterShowcaseScene extends Phaser.Scene {
             three: Phaser.Input.Keyboard.KeyCodes.THREE,
             four: Phaser.Input.Keyboard.KeyCodes.FOUR,
             five: Phaser.Input.Keyboard.KeyCodes.FIVE,
+            six: Phaser.Input.Keyboard.KeyCodes.SIX,
             left: Phaser.Input.Keyboard.KeyCodes.LEFT,
             right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
             attack: Phaser.Input.Keyboard.KeyCodes.A,
@@ -66,6 +67,9 @@ export class CharacterShowcaseScene extends Phaser.Scene {
         }
         if (Phaser.Input.Keyboard.JustDown(this.keys.five)) {
             characterStore.toggleDemoEquipment('cape');
+        }
+        if (Phaser.Input.Keyboard.JustDown(this.keys.six)) {
+            characterStore.toggleDemoEquipment('pants');
         }
         if (this.keys.left.isDown) {
             characterStore.setFacingDirection('left');

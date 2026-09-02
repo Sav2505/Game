@@ -1,7 +1,7 @@
 export const PLAYER_CHARACTER_DEBUG = false;
 
 export const PLAYER_CHARACTER_RENDER_CONFIG = {
-  rendererScale: 3,
+  rendererScale: 3.2,
   bodyDisplayWidth: 102,
   bodyDisplayHeight: 102,
   bodyOriginX: 0.5,

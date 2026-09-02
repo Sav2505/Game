@@ -5,11 +5,11 @@ export const LEVEL_HEIGHT = 960;
 export const GROUND_Y = 820;
 export const REACT_HUD_UPDATE_DISTANCE = 120;
 export const PLAYER_CONFIG = {
-    movementSpeed: 260,
-    jumpForce: 560,
-    doubleJumpMultiplier: 1.3,
+    movementSpeed: 200,
+    jumpForce: 600,
+    doubleJumpMultiplier: 1.0,
     walkAnimationDelayMs: 90,
-    gravity: 1200,
+    gravity: 550,
     maxHp: 100,
     attackDamage: 20,
     attackCooldown: 520,

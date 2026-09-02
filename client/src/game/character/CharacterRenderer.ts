@@ -17,7 +17,6 @@ import {
 } from './renderConfig';
 
 type LayerKey =
-    | 'shadow'
     | 'cape'
     | 'backLeg'
     | 'frontLeg'
@@ -123,7 +122,6 @@ export class CharacterRenderer {
 
     public setAppearance(characterAppearance: PlayerCharacter['appearance']): void {
         this.updateLayerTexture('body', characterAppearance.body, false);
-        this.layers.get('shadow')?.image.setVisible(true);
         this.layers.get('body')?.image.setVisible(true);
 
         const placeholderLayerKeys: LayerKey[] = ['torso', 'head', 'face', 'hair', 'backArm', 'frontArm', 'backLeg', 'frontLeg', 'backShoe', 'frontShoe', 'cape', 'top', 'pants', 'gloves', 'helmet', 'accessory', 'weapon', 'effect'];
@@ -285,7 +283,6 @@ export class CharacterRenderer {
 
     private buildLayers(): void {
         const layerOrder: Array<{ key: LayerKey; textureKey: string; x: number; y: number; scale?: number; alpha?: number }> = [
-            { key: 'shadow', textureKey: 'character-shadow', x: 0, y: 42, alpha: 0.85, scale: 1 },
             { key: 'cape', textureKey: 'character-cape-red', x: -10, y: 12, scale: 1 },
             { key: 'backLeg', textureKey: 'character-leg-base', x: -10, y: 30, scale: 1 },
             { key: 'frontLeg', textureKey: 'character-leg-base', x: 10, y: 30, scale: 1 },
@@ -319,7 +316,7 @@ export class CharacterRenderer {
             if (typeof layer.scale === 'number') {
                 image.setScale(layer.scale);
             }
-            const isVisibleBaseLayer = layer.key === 'shadow' || layer.key === 'body';
+            const isVisibleBaseLayer = layer.key === 'body';
             image.setVisible(isVisibleBaseLayer);
             this.container.add(image);
             this.layers.set(layer.key, {
@@ -351,7 +348,7 @@ export class CharacterRenderer {
             return;
         }
 
-        if (layerKey !== 'body' && layerKey !== 'shadow') {
+        if (layerKey !== 'body') {
             layer.image.setVisible(false);
             return;
         }
@@ -457,7 +454,6 @@ export class CharacterRenderer {
     }
 
     private applyAnimationState(time: number): void {
-        const shadow = this.layers.get('shadow')?.image;
         const effect = this.layers.get('effect')?.image;
         const weapon = this.layers.get('weapon')?.image;
         const face = this.layers.get('face')?.image;
@@ -672,10 +668,6 @@ export class CharacterRenderer {
         const nextY = PLAYER_CHARACTER_RENDER_CONFIG.snapToPixels ? Math.round(this.baseY + yOffset) : this.baseY + yOffset;
         this.container.setPosition(nextX, nextY);
         this.container.alpha = alpha;
-        if (shadow) {
-            shadow.setScale(1 + Math.abs(yOffset) * 0.02, 1);
-            shadow.setAlpha(this.animationState === 'death' ? 0.1 : 0.9);
-        }
         if (weapon) {
             weapon.rotation = weaponRotation;
             weapon.y = this.layers.get('weapon')?.baseY ?? weapon.y;

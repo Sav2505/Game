@@ -351,8 +351,12 @@ function ensureBodySpriteSheetTexture(scene, key, path, expectedFrameCount) {
 }
 export function ensureCharacterTextures(scene) {
     ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.stand, '/assets/characters/player/body/stand.png');
+    ensureImageTexture(scene, 'character-helmet-hat-1', '/assets/characters/player/helmets/hat_1.png');
+    ensureImageTexture(scene, 'character-top-shirt-1', '/assets/characters/player/tops/shirt_1.png');
+    ensureImageTexture(scene, 'character-pants-1', '/assets/characters/player/pants/pants_1.png');
     ensureBodySpriteSheetTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.walk, '/assets/characters/player/body/walk.png', PLAYER_CHARACTER_ANIMATION_TIMING.fallbackWalkFrameCount);
     ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.jump, '/assets/characters/player/body/jump.png');
+    ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.hurt, '/assets/characters/player/body/hurt.png');
     generateTexture(scene, 'character-body-base', 96, 96, drawBody);
     generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
     generateTexture(scene, 'character-head-base', 96, 96, drawHead);

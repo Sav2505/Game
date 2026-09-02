@@ -254,12 +254,6 @@ function drawEffect(graphics: Phaser.GameObjects.Graphics): void {
   graphics.fillCircle(48, 48, 16);
 }
 
-function drawShadow(graphics: Phaser.GameObjects.Graphics): void {
-  graphics.clear();
-  graphics.fillStyle(0x000000, 0.28);
-  graphics.fillEllipse(48, 40, 68, 16);
-}
-
 function ensureImageTexture(scene: Phaser.Scene, key: string, path: string): void {
   if (scene.textures.exists(key)) {
     return;
@@ -461,5 +455,4 @@ export function ensureCharacterTextures(scene: Phaser.Scene): void {
   generateTexture(scene, 'character-weapon-wooden-sword', 96, 96, drawWeapon);
   generateTexture(scene, 'character-accessory-star', 96, 96, drawAccessory);
   generateTexture(scene, 'character-effect-glow', 96, 96, drawEffect);
-  generateTexture(scene, 'character-shadow', 96, 64, drawShadow);
 }

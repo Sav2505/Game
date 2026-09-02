@@ -1,6 +1,6 @@
 export const PLAYER_CHARACTER_DEBUG = false;
 export const PLAYER_CHARACTER_RENDER_CONFIG = {
-    rendererScale: 3,
+    rendererScale: 3.2,
     bodyDisplayWidth: 102,
     bodyDisplayHeight: 102,
     bodyOriginX: 0.5,
@@ -17,4 +17,5 @@ export const PLAYER_CHARACTER_BODY_TEXTURE_KEYS = {
     stand: 'player-base-body',
     walk: 'player-walk-spritesheet',
     jump: 'player-jump-spritesheet',
+    hurt: 'player-hurt-body',
 };

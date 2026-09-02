@@ -53,7 +53,17 @@ export const characterStore = {
         syncCharacter(nextCharacter);
     },
     toggleDemoEquipment(slot) {
-        const demoItem = DEMO_EQUIPMENT[slot === 'top' ? 'basicShirt' : slot === 'helmet' ? 'ironHelmet' : slot === 'weapon' ? 'woodenSword' : slot === 'shoes' ? 'leatherBoots' : 'redCape'];
+        const demoItem = DEMO_EQUIPMENT[slot === 'top'
+            ? 'basicShirt'
+            : slot === 'pants'
+                ? 'basicPants'
+                : slot === 'helmet'
+                    ? 'ironHelmet'
+                    : slot === 'weapon'
+                        ? 'woodenSword'
+                        : slot === 'shoes'
+                            ? 'leatherBoots'
+                            : 'redCape'];
         const currentItem = state.character.equipment[slot] ?? null;
         characterStore.setEquipment(slot, currentItem ? null : demoItem);
     },

@@ -6,6 +6,8 @@ import { PLAYER_CHARACTER_RENDER_CONFIG } from '@/game/character/renderConfig';
 import { PLAYER_CONFIG } from '@/game/config/constants';
 import { HealthComponent } from '@/game/systems/HealthComponent';
 export class Player extends Phaser.Physics.Arcade.Sprite {
+    static HURT_STUN_MS = 180;
+    static HURT_VISUAL_MS = 5000;
     id = 'player-1';
     character;
     characterRenderer;
@@ -17,6 +19,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     state = 'idle';
     lastAttackTime = -Infinity;
     hurtUntil = 0;
+    hurtVisualUntil = 0;
     canDoubleJump = true;
     hasUsedDoubleJump = false;
     jumpWasPressed = false;
@@ -62,11 +65,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.syncRenderer(time);
         return true;
     }
-    takeDamage(amount) {
+    takeDamage(amount, source = 'other') {
         const died = this.health.takeDamage(amount);
         if (!died) {
             this.state = 'hurt';
-            this.hurtUntil = this.scene.time.now + 180;
+            this.hurtUntil = this.scene.time.now + Player.HURT_STUN_MS;
+            if (source === 'monster') {
+                this.hurtVisualUntil = this.scene.time.now + Player.HURT_VISUAL_MS;
+            }
             this.setTint(0xff7f93);
         }
         this.syncRenderer(this.scene.time.now);
@@ -97,6 +103,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.canDoubleJump = true;
         this.hasUsedDoubleJump = false;
         this.jumpWasPressed = false;
+        this.hurtVisualUntil = 0;
         this.syncRenderer(this.scene.time.now);
     }
     updateControls(controls, time) {
@@ -184,15 +191,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     syncRenderer(time) {
         this.characterRenderer.setPosition(this.x, this.y - 28);
         this.characterRenderer.setFacingDirection(this.facing);
-        const animationState = this.state === 'run'
-            ? time >= this.walkAnimationReadyAt
-                ? 'walk'
-                : 'idle'
-            : this.state === 'jump' || this.state === 'fall'
+        const hasActiveHurtVisual = time < this.hurtVisualUntil && this.state !== 'dead';
+        const animationState = hasActiveHurtVisual
+            ? 'hurt'
+            : this.state === 'run'
                 ? 'idle'
-                : this.state === 'doubleJump'
-                    ? 'jump'
-                    : this.state;
+                : this.state === 'jump' || this.state === 'fall'
+                    ? 'idle'
+                    : this.state === 'doubleJump'
+                        ? 'jump'
+                        : this.state;
         this.characterRenderer.playAnimation(animationState);
         this.characterRenderer.update(time);
     }

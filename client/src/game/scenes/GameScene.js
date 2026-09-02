@@ -10,7 +10,7 @@ import { CombatSystem } from '@/game/combat/CombatSystem';
 import { CurrencySystem } from '@/game/systems/CurrencySystem';
 import { ExperienceSystem } from '@/game/systems/ExperienceSystem';
 import { QuestSystem } from '@/game/systems/QuestSystem';
-import { createDefaultPlayerCharacter } from '@/game/character/catalog';
+import { characterStore } from '@/state/characterStore';
 import { PLAYER_CONFIG, QUEST_REWARD, REACT_HUD_UPDATE_DISTANCE } from '@/game/config/constants';
 export class GameScene extends Phaser.Scene {
     player;
@@ -32,6 +32,7 @@ export class GameScene extends Phaser.Scene {
         respawnPlayer: () => this.respawnPlayer(),
         claimQuestReward: () => this.claimQuestReward()
     };
+    unsubscribeCharacterStore;
     constructor() {
         super('GameScene');
     }
@@ -72,7 +73,10 @@ export class GameScene extends Phaser.Scene {
             jumpForce: PLAYER_CONFIG.jumpForce,
             gravity: PLAYER_CONFIG.gravity,
             attackCooldown: PLAYER_CONFIG.attackCooldown,
-            character: createDefaultPlayerCharacter()
+            character: characterStore.getState().character
+        });
+        this.unsubscribeCharacterStore = characterStore.subscribe(() => {
+            this.player.characterRenderer.setCharacter(characterStore.getState().character);
         });
         const playerBody = this.player.body;
         playerBody.setMaxVelocity(360, 900);
@@ -98,6 +102,7 @@ export class GameScene extends Phaser.Scene {
         this.configureCamera();
         this.setupEvents();
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            this.unsubscribeCharacterStore?.();
             gameRuntime.unregister(this.runtimeBridge);
         });
         this.syncPlayerToStore();

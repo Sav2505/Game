@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { calculateFinalCharacterStats } from './calculateFinalStats';
 import { ensureCharacterTextures } from './ensureCharacterTextures';
 import { PLAYER_CHARACTER_ANIMATION_TIMING, PLAYER_CHARACTER_BODY_TEXTURE_KEYS, PLAYER_CHARACTER_DEBUG, PLAYER_CHARACTER_RENDER_CONFIG, } from './renderConfig';
+const CHARACTER_CANVAS_SIZE = 512;
 export class CharacterRenderer {
     container;
     scene;
@@ -187,14 +188,14 @@ export class CharacterRenderer {
     }
     buildLayers() {
         const layerOrder = [
-            { key: 'shadow', textureKey: 'character-shadow', x: 0, y: 66, alpha: 0.85, scale: 1 },
+            { key: 'shadow', textureKey: 'character-shadow', x: 0, y: 42, alpha: 0.85, scale: 1 },
             { key: 'cape', textureKey: 'character-cape-red', x: -10, y: 12, scale: 1 },
             { key: 'backLeg', textureKey: 'character-leg-base', x: -10, y: 30, scale: 1 },
             { key: 'frontLeg', textureKey: 'character-leg-base', x: 10, y: 30, scale: 1 },
             { key: 'backShoe', textureKey: 'character-shoes-basic', x: -10, y: 30, scale: 1 },
             { key: 'frontShoe', textureKey: 'character-shoes-basic', x: 10, y: 30, scale: 1 },
-            { key: 'pants', textureKey: 'character-pants-basic', x: 0, y: 26, scale: 1 },
             { key: 'body', textureKey: PLAYER_CHARACTER_BODY_TEXTURE_KEYS.stand, x: 0, y: 8, scale: 1 },
+            { key: 'pants', textureKey: 'character-pants-basic', x: 0, y: 26, scale: 1 },
             { key: 'backArm', textureKey: 'character-arm-base', x: -23, y: 6, scale: 1 },
             { key: 'torso', textureKey: 'character-torso-base', x: 0, y: 8, scale: 1 },
             { key: 'top', textureKey: 'character-top-basic', x: 0, y: 8, scale: 1 },
@@ -226,7 +227,10 @@ export class CharacterRenderer {
             this.layers.set(layer.key, {
                 image,
                 baseX: layer.x,
-                baseY: layer.y
+                baseY: layer.y,
+                baseScale: layer.scale ?? 1,
+                baseOriginX: 0.5,
+                baseOriginY: 0.5,
             });
         }
     }
@@ -263,17 +267,75 @@ export class CharacterRenderer {
         if (!layer) {
             return;
         }
-        const placeholderSlots = ['cape', 'pants', 'backShoe', 'frontShoe', 'top', 'helmet', 'weapon', 'accessory', 'gloves'];
-        if (placeholderSlots.includes(slot)) {
-            layer.image.setVisible(false);
-            return;
-        }
+        this.resetLayerTransform(slot);
         if (!item) {
             layer.image.setVisible(false);
             return;
         }
         layer.image.setTexture(item.spriteKey);
         layer.image.setVisible(true);
+        this.applyEquipmentRender(slot, item.render);
+    }
+    resetLayerTransform(layerKey) {
+        const layer = this.layers.get(layerKey);
+        if (!layer) {
+            return;
+        }
+        layer.image.x = layer.baseX;
+        layer.image.y = layer.baseY;
+        layer.image.setScale(layer.baseScale);
+        layer.image.setOrigin(layer.baseOriginX, layer.baseOriginY);
+    }
+    applyEquipmentRender(layerKey, render) {
+        if (!render) {
+            return;
+        }
+        if (render.coordinateSpace === 'characterCanvas512') {
+            this.applyCharacterCanvasEquipmentRender(layerKey, render);
+            return;
+        }
+        const layer = this.layers.get(layerKey);
+        if (!layer) {
+            return;
+        }
+        const scale = render.scale ?? layer.baseScale;
+        layer.image.setScale(scale);
+        layer.image.setOrigin(render.originX ?? layer.baseOriginX, render.originY ?? layer.baseOriginY);
+        layer.image.x = layer.baseX + (render.offsetX ?? 0);
+        layer.image.y = layer.baseY + (render.offsetY ?? 0);
+    }
+    applyCharacterCanvasEquipmentRender(layerKey, render) {
+        const layer = this.layers.get(layerKey);
+        const body = this.layers.get('body')?.image;
+        if (!layer || !body) {
+            return;
+        }
+        const layerScale = render.scale ?? 1;
+        const ratioX = body.displayWidth / CHARACTER_CANVAS_SIZE;
+        const ratioY = body.displayHeight / CHARACTER_CANVAS_SIZE;
+        layer.image.setDisplaySize(body.displayWidth * layerScale, body.displayHeight * layerScale);
+        layer.image.setOrigin(render.originX ?? body.originX, render.originY ?? body.originY);
+        layer.image.x = body.x + ((render.offsetX ?? 0) * ratioX);
+        layer.image.y = body.y + ((render.offsetY ?? 0) * ratioY);
+    }
+    syncCharacterCanvasEquipmentLayers() {
+        const equipmentLayers = [
+            ['helmet', this.character.equipment.helmet ?? null],
+            ['top', this.character.equipment.top ?? null],
+            ['pants', this.character.equipment.pants ?? null],
+            ['backShoe', this.character.equipment.shoes ?? null],
+            ['frontShoe', this.character.equipment.shoes ?? null],
+            ['gloves', this.character.equipment.gloves ?? null],
+            ['cape', this.character.equipment.cape ?? null],
+            ['weapon', this.character.equipment.weapon ?? null],
+            ['accessory', this.character.equipment.accessory ?? null],
+        ];
+        for (const [layerKey, item] of equipmentLayers) {
+            if (!item?.render || item.render.coordinateSpace !== 'characterCanvas512') {
+                continue;
+            }
+            this.applyCharacterCanvasEquipmentRender(layerKey, item.render);
+        }
     }
     applyAnimationState(time) {
         const shadow = this.layers.get('shadow')?.image;
@@ -433,9 +495,11 @@ export class CharacterRenderer {
                 }
                 break;
             case 'hurt':
-                yOffset = -1 + Math.sin(time / 40) * 1.2;
-                alpha = 0.88;
+                yOffset = idleBob * 0.4;
+                alpha = 1;
                 nextExpression = 'hurt';
+                bodyTextureKey = PLAYER_CHARACTER_BODY_TEXTURE_KEYS.hurt;
+                bodyFrameIndex = 0;
                 break;
             case 'death':
                 yOffset = 8;
@@ -465,6 +529,7 @@ export class CharacterRenderer {
         if (body) {
             this.applyBodyFrame(bodyTextureKey, bodyFrameIndex);
         }
+        this.syncCharacterCanvasEquipmentLayers();
         this.expression = nextExpression;
         const nextX = PLAYER_CHARACTER_RENDER_CONFIG.snapToPixels ? Math.round(this.baseX) : this.baseX;
         const nextY = PLAYER_CHARACTER_RENDER_CONFIG.snapToPixels ? Math.round(this.baseY + yOffset) : this.baseY + yOffset;

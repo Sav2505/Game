@@ -1,19 +1,47 @@
 export const DEMO_EQUIPMENT = {
     basicShirt: {
-        id: 'basic-shirt',
-        name: 'Basic Shirt',
+        id: 'shirt-1',
+        name: 'Shirt 1',
         type: 'top',
-        spriteKey: 'character-top-basic',
+        spriteKey: 'character-top-shirt-1',
+        render: {
+            coordinateSpace: 'characterCanvas512',
+            offsetX: -2,
+            offsetY: -92,
+            scale: 0.6
+        },
+        statBonuses: {
+            defense: 1,
+            maxHp: 4
+        }
+    },
+    basicPants: {
+        id: 'pants-1',
+        name: 'Pants 1',
+        type: 'pants',
+        spriteKey: 'character-pants-1',
+        render: {
+            coordinateSpace: 'characterCanvas512',
+            offsetX: -3,
+            offsetY: 50,
+            scale: 0.59
+        },
         statBonuses: {
             defense: 1,
             maxHp: 4
         }
     },
     ironHelmet: {
-        id: 'iron-helmet',
-        name: 'Iron Helmet',
+        id: 'hat-1',
+        name: 'Hat 1',
         type: 'helmet',
-        spriteKey: 'character-helmet-basic',
+        spriteKey: 'character-helmet-hat-1',
+        render: {
+            coordinateSpace: 'characterCanvas512',
+            offsetX: 1,
+            offsetY: -260,
+            scale: 0.29
+        },
         statBonuses: {
             defense: 2,
             maxHp: 6
@@ -52,6 +80,7 @@ export const DEMO_EQUIPMENT = {
 };
 export const DEMO_EQUIPMENT_ORDER = [
     'basicShirt',
+    'basicPants',
     'ironHelmet',
     'woodenSword',
     'leatherBoots',
@@ -59,6 +88,7 @@ export const DEMO_EQUIPMENT_ORDER = [
 ];
 export const DEMO_EQUIPMENT_SLOT_MAP = {
     top: DEMO_EQUIPMENT.basicShirt,
+    pants: DEMO_EQUIPMENT.basicPants,
     helmet: DEMO_EQUIPMENT.ironHelmet,
     weapon: DEMO_EQUIPMENT.woodenSword,
     shoes: DEMO_EQUIPMENT.leatherBoots,
@@ -83,7 +113,11 @@ export const DEFAULT_CHARACTER_STATS = {
     maxHp: 100,
     maxMp: 30
 };
-export const DEFAULT_CHARACTER_EQUIPMENT = {};
+export const DEFAULT_CHARACTER_EQUIPMENT = {
+    helmet: DEMO_EQUIPMENT.ironHelmet,
+    top: DEMO_EQUIPMENT.basicShirt,
+    pants: DEMO_EQUIPMENT.basicPants
+};
 export function createDefaultPlayerCharacter() {
     return {
         id: 'hero-001',
