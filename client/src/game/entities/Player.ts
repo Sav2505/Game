@@ -240,9 +240,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.characterRenderer.setFacingDirection(this.facing as CharacterFacingDirection);
     const animationState: CharacterAnimationState =
       this.state === 'run'
-        ? time >= this.walkAnimationReadyAt
-          ? 'walk'
-          : 'idle'
+        ? 'idle'
         : this.state === 'jump' || this.state === 'fall'
           ? 'idle'
           : this.state === 'doubleJump'

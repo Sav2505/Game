@@ -11,7 +11,7 @@ import { CombatSystem } from '@/game/combat/CombatSystem';
 import { CurrencySystem } from '@/game/systems/CurrencySystem';
 import { ExperienceSystem } from '@/game/systems/ExperienceSystem';
 import { QuestSystem } from '@/game/systems/QuestSystem';
-import { createDefaultPlayerCharacter } from '@/game/character/catalog';
+import { characterStore } from '@/state/characterStore';
 import { PLAYER_CONFIG, QUEST_REWARD, REACT_HUD_UPDATE_DISTANCE, SLIME_CONFIG } from '@/game/config/constants';
 
 type ControlKeys = {
@@ -61,6 +61,8 @@ export class GameScene extends Phaser.Scene {
     claimQuestReward: () => this.claimQuestReward()
   };
 
+  private unsubscribeCharacterStore?: () => void;
+
   public constructor() {
     super('GameScene');
   }
@@ -107,7 +109,11 @@ export class GameScene extends Phaser.Scene {
       jumpForce: PLAYER_CONFIG.jumpForce,
       gravity: PLAYER_CONFIG.gravity,
       attackCooldown: PLAYER_CONFIG.attackCooldown,
-      character: createDefaultPlayerCharacter()
+      character: characterStore.getState().character
+    });
+
+    this.unsubscribeCharacterStore = characterStore.subscribe(() => {
+      this.player.characterRenderer.setCharacter(characterStore.getState().character);
     });
 
     const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
@@ -139,6 +145,7 @@ export class GameScene extends Phaser.Scene {
     this.setupEvents();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.unsubscribeCharacterStore?.();
       gameRuntime.unregister(this.runtimeBridge);
     });
 
