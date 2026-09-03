@@ -1,6 +1,7 @@
 export interface GameRuntimeBridge {
   respawnPlayer(): void;
   claimQuestReward(): void;
+  dropInventoryItem(itemId: string): void;
 }
 
 let bridge: GameRuntimeBridge | null = null;
@@ -19,5 +20,8 @@ export const gameRuntime = {
   },
   claimQuestReward(): void {
     bridge?.claimQuestReward();
+  },
+  dropInventoryItem(itemId: string): void {
+    bridge?.dropInventoryItem(itemId);
   }
 };

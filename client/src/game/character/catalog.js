@@ -15,6 +15,23 @@ export const DEMO_EQUIPMENT = {
             maxHp: 4
         }
     },
+    forestGuideShirt: {
+        id: 'shirt-2',
+        name: 'Shirt 2',
+        type: 'top',
+        spriteKey: 'character-top-shirt-2',
+        render: {
+            coordinateSpace: 'characterCanvas512',
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1,
+        },
+        statBonuses: {
+            defense: 2,
+            vitality: 2,
+            maxHp: 8
+        }
+    },
     basicPants: {
         id: 'pants-1',
         name: 'Pants 1',
@@ -118,6 +135,7 @@ export const DEMO_EQUIPMENT = {
 };
 export const DEMO_EQUIPMENT_ORDER = [
     'basicShirt',
+    'forestGuideShirt',
     'basicPants',
     'ironHelmet',
     'woodenSword',

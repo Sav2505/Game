@@ -1,9 +1,12 @@
 import { useSyncExternalStore } from 'react';
 import { defaultPlayer, defaultQuest, loadSavedGame, saveGame } from '@/services/SaveService';
+import { createInventoryItemById } from '@/game/inventory/catalog';
 const savedGame = loadSavedGame();
 const initialState = {
     player: savedGame?.player ?? defaultPlayer,
     quest: savedGame?.quest ?? defaultQuest,
+    collectedPickupIds: savedGame?.collectedPickupIds ?? [],
+    droppedPickups: savedGame?.droppedPickups ?? [],
     ui: {
         dialogueOpen: false,
         questOpen: false,
@@ -16,6 +19,7 @@ const initialState = {
 };
 let state = initialState;
 const listeners = new Set();
+let notificationTimeoutId = null;
 function emit() {
     for (const listener of listeners) {
         listener();
@@ -24,7 +28,9 @@ function emit() {
 function persist() {
     saveGame({
         player: state.player,
-        quest: state.quest
+        quest: state.quest,
+        collectedPickupIds: state.collectedPickupIds,
+        droppedPickups: state.droppedPickups
     });
 }
 function setState(updater) {
@@ -62,7 +68,8 @@ function patchPlayer(patch) {
         nextPlayer.maxXp === state.player.maxXp &&
         nextPlayer.hp === state.player.hp &&
         nextPlayer.maxHp === state.player.maxHp &&
-        nextPlayer.gold === state.player.gold) {
+        nextPlayer.gold === state.player.gold &&
+        nextPlayer.inventory === state.player.inventory) {
         return;
     }
     setState((previous) => ({
@@ -102,11 +109,116 @@ function updatePlayer(mutator) {
     const nextPlayer = mutator(state.player);
     patchPlayer(nextPlayer);
 }
+function replaceInventory(inventory) {
+    patchPlayer({
+        inventory: inventory.map((item) => ({
+            ...item,
+            stats: item.stats.map((line) => ({ ...line })),
+            bonuses: item.bonuses.map((line) => ({ ...line })),
+            powers: [...item.powers],
+            attributes: [...item.attributes],
+            effects: [...item.effects]
+        }))
+    });
+}
+function addInventoryItem(itemId, quantity = 1) {
+    if (quantity <= 0) {
+        return null;
+    }
+    const itemDefinition = createInventoryItemById(itemId);
+    if (!itemDefinition) {
+        return null;
+    }
+    let collectedItem = null;
+    updatePlayer((player) => {
+        const existingItem = player.inventory.find((entry) => entry.id === itemId);
+        if (existingItem) {
+            collectedItem = { ...existingItem, quantity: existingItem.quantity + quantity };
+            return {
+                ...player,
+                inventory: player.inventory.map((entry) => (entry.id === itemId
+                    ? {
+                        ...entry,
+                        quantity: entry.quantity + quantity
+                    }
+                    : entry))
+            };
+        }
+        collectedItem = {
+            ...itemDefinition,
+            quantity
+        };
+        return {
+            ...player,
+            inventory: [...player.inventory, collectedItem]
+        };
+    });
+    return collectedItem;
+}
+function consumeInventoryItem(itemId, quantity = 1) {
+    if (quantity <= 0) {
+        return false;
+    }
+    let consumed = false;
+    updatePlayer((player) => {
+        const existingItem = player.inventory.find((entry) => entry.id === itemId);
+        if (!existingItem || existingItem.quantity < quantity) {
+            return player;
+        }
+        consumed = true;
+        return {
+            ...player,
+            inventory: player.inventory.flatMap((entry) => {
+                if (entry.id !== itemId) {
+                    return [entry];
+                }
+                const nextQuantity = entry.quantity - quantity;
+                if (nextQuantity <= 0) {
+                    return [];
+                }
+                return [{
+                        ...entry,
+                        quantity: nextQuantity
+                    }];
+            })
+        };
+    });
+    return consumed;
+}
+function addCollectedPickupId(pickupId) {
+    if (state.collectedPickupIds.includes(pickupId)) {
+        return;
+    }
+    setState((previous) => ({
+        ...previous,
+        collectedPickupIds: [...previous.collectedPickupIds, pickupId]
+    }));
+    persist();
+}
+function addDroppedPickup(pickup) {
+    setState((previous) => ({
+        ...previous,
+        droppedPickups: [...previous.droppedPickups.filter((entry) => entry.pickupId !== pickup.pickupId), { ...pickup }]
+    }));
+    persist();
+}
+function removeDroppedPickup(pickupId) {
+    if (!state.droppedPickups.some((pickup) => pickup.pickupId === pickupId)) {
+        return;
+    }
+    setState((previous) => ({
+        ...previous,
+        droppedPickups: previous.droppedPickups.filter((pickup) => pickup.pickupId !== pickupId)
+    }));
+    persist();
+}
 function hydrate(snapshot) {
     setState((previous) => ({
         ...previous,
         player: snapshot.player,
-        quest: snapshot.quest
+        quest: snapshot.quest,
+        collectedPickupIds: snapshot.collectedPickupIds,
+        droppedPickups: snapshot.droppedPickups
     }));
 }
 export const gameStore = {
@@ -118,8 +230,14 @@ export const gameStore = {
     hydrate,
     patchPlayer,
     updatePlayer,
+    replaceInventory,
+    addInventoryItem,
+    consumeInventoryItem,
     patchQuest,
     updateQuest,
+    addCollectedPickupId,
+    addDroppedPickup,
+    removeDroppedPickup,
     patchUi,
     setPrompt(prompt) {
         patchUi({ prompt });
@@ -140,7 +258,18 @@ export const gameStore = {
         patchUi({ inventoryOpen: !state.ui.inventoryOpen });
     },
     setNotification(notification) {
+        if (notificationTimeoutId !== null && typeof window !== 'undefined') {
+            window.clearTimeout(notificationTimeoutId);
+            notificationTimeoutId = null;
+        }
         patchUi({ notification });
+        if (!notification || typeof window === 'undefined') {
+            return;
+        }
+        notificationTimeoutId = window.setTimeout(() => {
+            notificationTimeoutId = null;
+            patchUi({ notification: null });
+        }, 2200);
     },
     setLevelUpMessage(levelUpMessage) {
         patchUi({ levelUpMessage });

@@ -13,5 +13,8 @@ export const gameRuntime = {
     },
     claimQuestReward() {
         bridge?.claimQuestReward();
+    },
+    dropInventoryItem(itemId) {
+        bridge?.dropInventoryItem(itemId);
     }
 };

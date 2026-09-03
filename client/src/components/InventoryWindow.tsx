@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { DEMO_EQUIPMENT } from '@/game/character/catalog';
 import type { EquipmentItem } from '@/game/character/types';
+import { gameRuntime } from '@/game/bridge/GameRuntime';
 import { characterStore, useCharacterStore } from '@/state/characterStore';
 import { gameStore, useGameStore } from '@/state/gameStore';
-import { createInitialInventoryItems, INVENTORY_SLOT_COUNT, type InventoryItem, type InventoryRarity } from '@/game/inventory/catalog';
+import { INVENTORY_SLOT_COUNT, type InventoryItem, type InventoryRarity } from '@/game/inventory/catalog';
 import { GameWindow } from '@/components/windows/GameWindow';
 
 interface ItemTooltipState {
@@ -41,9 +42,10 @@ interface ItemActionAreaProps {
   onEquip: () => void;
   onUnequip: () => void;
   onUse: () => void;
+  onRemove: () => void;
 }
 
-function ItemActionArea({ selectedItem, isEquipped, onEquip, onUnequip, onUse }: ItemActionAreaProps) {
+function ItemActionArea({ selectedItem, isEquipped, onEquip, onUnequip, onUse, onRemove }: ItemActionAreaProps) {
   return (
     <div className="inventory-action-area">
       <h4>Actions</h4>
@@ -58,6 +60,9 @@ function ItemActionArea({ selectedItem, isEquipped, onEquip, onUnequip, onUse }:
             Use
           </button>
         ) : null}
+        <button className="inventory-action-button inventory-remove-button" type="button" onClick={onRemove}>
+          Remove
+        </button>
       </div>
     </div>
   );
@@ -77,6 +82,8 @@ function resolveEquipmentImagePath(spriteKey: string): string | null {
       return '/assets/characters/player/helmets/hat_1.png';
     case 'character-top-shirt-1':
       return '/assets/characters/player/tops/shirt_1.png';
+    case 'character-top-shirt-2':
+      return '/assets/characters/player/tops/shirt_2.png';
     case 'character-pants-1':
       return '/assets/characters/player/pants/pants_1.png';
     case 'character-shoes-1':
@@ -92,11 +99,12 @@ export function InventoryWindow() {
   const isOpen = useGameStore((state) => state.ui.inventoryOpen);
   const player = useGameStore((state) => state.player);
   const character = useCharacterStore((state) => state.character);
+  const inventoryItems = useGameStore((state) => state.player.inventory);
 
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() => createInitialInventoryItems());
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<ItemTooltipState | null>(null);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [removeCandidateId, setRemoveCandidateId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedItemId) {
@@ -139,6 +147,7 @@ export function InventoryWindow() {
 
   const selectedItem = useMemo(() => inventoryItems.find((item) => item.id === selectedItemId) ?? null, [inventoryItems, selectedItemId]);
   const activeItem = selectedItem;
+  const removeCandidate = useMemo(() => inventoryItems.find((item) => item.id === removeCandidateId) ?? null, [inventoryItems, removeCandidateId]);
 
   const topEquipmentPath = character.equipment.top ? resolveEquipmentImagePath(character.equipment.top.spriteKey) : null;
   const pantsEquipmentPath = character.equipment.pants ? resolveEquipmentImagePath(character.equipment.pants.spriteKey) : null;
@@ -194,22 +203,11 @@ export function InventoryWindow() {
       }));
     }
 
-    let itemRemoved = false;
-    setInventoryItems((current) =>
-      current.flatMap((item) => {
-        if (item.id !== selectedItem.id) {
-          return [item];
-        }
-
-        const nextQuantity = item.quantity - 1;
-        if (nextQuantity <= 0) {
-          itemRemoved = true;
-          return [];
-        }
-
-        return [{ ...item, quantity: nextQuantity }];
-      })
-    );
+    const itemRemoved = selectedItem.quantity <= 1;
+    const consumed = gameStore.consumeInventoryItem(selectedItem.id);
+    if (!consumed) {
+      return;
+    }
 
     if (itemRemoved) {
       setSelectedItemId(null);
@@ -217,6 +215,47 @@ export function InventoryWindow() {
 
     setActionFeedback(`${selectedItem.name} used.`);
     gameStore.setNotification({ message: `${selectedItem.name} used`, kind: 'success' });
+  };
+
+  const handleRemoveRequest = () => {
+    if (!selectedItem) {
+      return;
+    }
+
+    setRemoveCandidateId(selectedItem.id);
+  };
+
+  const handleConfirmRemove = () => {
+    if (!removeCandidate) {
+      setRemoveCandidateId(null);
+      return;
+    }
+
+    const wasEquipped = removeCandidate.actionType === 'equippable' && equippedItemIds.has(removeCandidate.id);
+    if (wasEquipped && removeCandidate.equipSlot) {
+      characterStore.setEquipment(removeCandidate.equipSlot, null);
+    }
+
+    const removedLastItem = removeCandidate.quantity <= 1;
+    const removed = gameStore.consumeInventoryItem(removeCandidate.id);
+    if (!removed) {
+      setRemoveCandidateId(null);
+      return;
+    }
+
+    gameRuntime.dropInventoryItem(removeCandidate.id);
+
+    if (removedLastItem && selectedItemId === removeCandidate.id) {
+      setSelectedItemId(null);
+    }
+
+    setActionFeedback(`${removeCandidate.name} הוסר מהתיק והושלך לקרקע.`);
+    gameStore.setNotification({ message: `${removeCandidate.name} הושלך לידך.`, kind: 'info' });
+    setRemoveCandidateId(null);
+  };
+
+  const handleCancelRemove = () => {
+    setRemoveCandidateId(null);
   };
 
   const handleItemHover = (item: InventoryItem, event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -384,6 +423,7 @@ export function InventoryWindow() {
                     onEquip={handleEquipItem}
                     onUnequip={handleUnequipItem}
                     onUse={handleUseItem}
+                    onRemove={handleRemoveRequest}
                   />
                 ) : null}
 
@@ -408,6 +448,33 @@ export function InventoryWindow() {
           <span>{tooltip.item.category}</span>
           <img className="inventory-tooltip-image" src={tooltip.item.imagePath} alt="" draggable={false} />
           <p>{tooltip.item.description}</p>
+        </div>
+      ) : null}
+
+      {isOpen && removeCandidate ? (
+        <div className="inventory-confirm-backdrop" role="presentation">
+          <div className="inventory-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-remove-title">
+            <div className="inventory-confirm-header">
+              <h3 id="inventory-remove-title">אישור השלכת פריט</h3>
+            </div>
+            <div className="inventory-confirm-body">
+              <div className="inventory-confirm-item-row">
+                <img className="inventory-confirm-item-image" src={removeCandidate.imagePath} alt="" draggable={false} />
+                <div>
+                  <strong>{removeCandidate.name}</strong>
+                  <p>האם אתה בטוח שברצונך להסיר את הפריט מהתיק ולהשליך אותו ליד הדמות?</p>
+                </div>
+              </div>
+            </div>
+            <div className="inventory-confirm-actions">
+              <button className="inventory-action-button secondary-button" type="button" onClick={handleCancelRemove}>
+                ביטול
+              </button>
+              <button className="inventory-action-button inventory-remove-button" type="button" onClick={handleConfirmRemove}>
+                כן, להשליך
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </>

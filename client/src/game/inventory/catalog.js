@@ -39,6 +39,25 @@ export const INVENTORY_ITEMS = [
         equipSlot: 'top'
     },
     {
+        id: 'shirt-2',
+        name: 'Forest Whisper Shirt',
+        category: 'Top',
+        rarity: 'rare',
+        actionType: 'equippable',
+        imagePath: '/assets/characters/player/tops/shirt_2.png',
+        quantity: 1,
+        description: 'A finely stitched shirt that feels light on the body and steady in the forest air.',
+        stats: [
+            { label: 'Defense', value: '+5' },
+            { label: 'Vitality', value: '+4' }
+        ],
+        bonuses: [{ label: 'Comfort', value: '+6 Recovery Balance' }],
+        powers: ['Breath of the Grove: movement feels calmer after taking a hit.'],
+        attributes: ['Fabric', 'Forestcraft', 'Rare'],
+        effects: ['A lightweight top recovered from the guide path.'],
+        equipSlot: 'top'
+    },
+    {
         id: 'pants-1',
         name: 'Ranger Pants',
         category: 'Pants',
@@ -98,4 +117,11 @@ export const INVENTORY_ITEMS = [
 ];
 export function createInitialInventoryItems() {
     return INVENTORY_ITEMS.map((item) => ({ ...item }));
+}
+export function createInventoryItemById(itemId) {
+    const item = INVENTORY_ITEMS.find((entry) => entry.id === itemId);
+    return item ? { ...item } : null;
+}
+export function createWorldPickupTextureKey(itemId) {
+    return `inventory-world-${itemId}`;
 }

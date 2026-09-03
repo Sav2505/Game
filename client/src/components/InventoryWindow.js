@@ -1,9 +1,10 @@
 import { Fragment as _Fragment, jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useMemo, useState } from 'react';
 import { DEMO_EQUIPMENT } from '@/game/character/catalog';
+import { gameRuntime } from '@/game/bridge/GameRuntime';
 import { characterStore, useCharacterStore } from '@/state/characterStore';
 import { gameStore, useGameStore } from '@/state/gameStore';
-import { createInitialInventoryItems, INVENTORY_SLOT_COUNT } from '@/game/inventory/catalog';
+import { INVENTORY_SLOT_COUNT } from '@/game/inventory/catalog';
 import { GameWindow } from '@/components/windows/GameWindow';
 function rarityClassName(rarity) {
     switch (rarity) {
@@ -20,8 +21,8 @@ function rarityClassName(rarity) {
 function ItemDetailLine({ label, value }) {
     return (_jsxs("div", { className: "inventory-detail-line", children: [_jsx("span", { children: label }), _jsx("strong", { children: value })] }));
 }
-function ItemActionArea({ selectedItem, isEquipped, onEquip, onUnequip, onUse }) {
-    return (_jsxs("div", { className: "inventory-action-area", children: [_jsx("h4", { children: "Actions" }), _jsxs("div", { className: "inventory-actions-row", children: [selectedItem.actionType === 'equippable' ? (_jsx("button", { className: "inventory-action-button secondary-button", type: "button", onClick: isEquipped ? onUnequip : onEquip, children: isEquipped ? 'Unequip' : 'Equip' })) : null, selectedItem.actionType === 'usable' ? (_jsx("button", { className: "inventory-action-button primary-button", type: "button", onClick: onUse, children: "Use" })) : null] })] }));
+function ItemActionArea({ selectedItem, isEquipped, onEquip, onUnequip, onUse, onRemove }) {
+    return (_jsxs("div", { className: "inventory-action-area", children: [_jsx("h4", { children: "Actions" }), _jsxs("div", { className: "inventory-actions-row", children: [selectedItem.actionType === 'equippable' ? (_jsx("button", { className: "inventory-action-button secondary-button", type: "button", onClick: isEquipped ? onUnequip : onEquip, children: isEquipped ? 'Unequip' : 'Equip' })) : null, selectedItem.actionType === 'usable' ? (_jsx("button", { className: "inventory-action-button primary-button", type: "button", onClick: onUse, children: "Use" })) : null, _jsx("button", { className: "inventory-action-button inventory-remove-button", type: "button", onClick: onRemove, children: "Remove" })] })] }));
 }
 const EQUIPPABLE_BY_ID = Object.values(DEMO_EQUIPMENT).reduce((collection, item) => {
     collection[item.id] = item;
@@ -33,6 +34,8 @@ function resolveEquipmentImagePath(spriteKey) {
             return '/assets/characters/player/helmets/hat_1.png';
         case 'character-top-shirt-1':
             return '/assets/characters/player/tops/shirt_1.png';
+        case 'character-top-shirt-2':
+            return '/assets/characters/player/tops/shirt_2.png';
         case 'character-pants-1':
             return '/assets/characters/player/pants/pants_1.png';
         case 'character-shoes-1':
@@ -47,10 +50,11 @@ export function InventoryWindow() {
     const isOpen = useGameStore((state) => state.ui.inventoryOpen);
     const player = useGameStore((state) => state.player);
     const character = useCharacterStore((state) => state.character);
-    const [inventoryItems, setInventoryItems] = useState(() => createInitialInventoryItems());
+    const inventoryItems = useGameStore((state) => state.player.inventory);
     const [selectedItemId, setSelectedItemId] = useState(null);
     const [tooltip, setTooltip] = useState(null);
     const [actionFeedback, setActionFeedback] = useState(null);
+    const [removeCandidateId, setRemoveCandidateId] = useState(null);
     useEffect(() => {
         if (!selectedItemId) {
             return;
@@ -79,6 +83,7 @@ export function InventoryWindow() {
     }, [inventoryItems]);
     const selectedItem = useMemo(() => inventoryItems.find((item) => item.id === selectedItemId) ?? null, [inventoryItems, selectedItemId]);
     const activeItem = selectedItem;
+    const removeCandidate = useMemo(() => inventoryItems.find((item) => item.id === removeCandidateId) ?? null, [inventoryItems, removeCandidateId]);
     const topEquipmentPath = character.equipment.top ? resolveEquipmentImagePath(character.equipment.top.spriteKey) : null;
     const pantsEquipmentPath = character.equipment.pants ? resolveEquipmentImagePath(character.equipment.pants.spriteKey) : null;
     const shoesEquipmentPath = character.equipment.shoes ? resolveEquipmentImagePath(character.equipment.shoes.spriteKey) : null;
@@ -123,23 +128,48 @@ export function InventoryWindow() {
                 gold: current.gold + effect.amount
             }));
         }
-        let itemRemoved = false;
-        setInventoryItems((current) => current.flatMap((item) => {
-            if (item.id !== selectedItem.id) {
-                return [item];
-            }
-            const nextQuantity = item.quantity - 1;
-            if (nextQuantity <= 0) {
-                itemRemoved = true;
-                return [];
-            }
-            return [{ ...item, quantity: nextQuantity }];
-        }));
+        const itemRemoved = selectedItem.quantity <= 1;
+        const consumed = gameStore.consumeInventoryItem(selectedItem.id);
+        if (!consumed) {
+            return;
+        }
         if (itemRemoved) {
             setSelectedItemId(null);
         }
         setActionFeedback(`${selectedItem.name} used.`);
         gameStore.setNotification({ message: `${selectedItem.name} used`, kind: 'success' });
+    };
+    const handleRemoveRequest = () => {
+        if (!selectedItem) {
+            return;
+        }
+        setRemoveCandidateId(selectedItem.id);
+    };
+    const handleConfirmRemove = () => {
+        if (!removeCandidate) {
+            setRemoveCandidateId(null);
+            return;
+        }
+        const wasEquipped = removeCandidate.actionType === 'equippable' && equippedItemIds.has(removeCandidate.id);
+        if (wasEquipped && removeCandidate.equipSlot) {
+            characterStore.setEquipment(removeCandidate.equipSlot, null);
+        }
+        const removedLastItem = removeCandidate.quantity <= 1;
+        const removed = gameStore.consumeInventoryItem(removeCandidate.id);
+        if (!removed) {
+            setRemoveCandidateId(null);
+            return;
+        }
+        gameRuntime.dropInventoryItem(removeCandidate.id);
+        if (removedLastItem && selectedItemId === removeCandidate.id) {
+            setSelectedItemId(null);
+        }
+        setActionFeedback(`${removeCandidate.name} הוסר מהתיק והושלך לקרקע.`);
+        gameStore.setNotification({ message: `${removeCandidate.name} הושלך לידך.`, kind: 'info' });
+        setRemoveCandidateId(null);
+    };
+    const handleCancelRemove = () => {
+        setRemoveCandidateId(null);
     };
     const handleItemHover = (item, event) => {
         setTooltip({ item, x: event.clientX, y: event.clientY });
@@ -160,5 +190,5 @@ export function InventoryWindow() {
                                                         }
                                                         setSelectedItemId((previous) => (previous === item.id ? null : item.id));
                                                     }, children: [item ? _jsx("img", { className: "inventory-item-image", src: item.imagePath, alt: item.name, draggable: false }) : _jsx("span", { className: "inventory-slot-empty" }), item && item.quantity > 1 ? _jsx("span", { className: "inventory-slot-quantity", children: item.quantity }) : null, isEquipped ? _jsx("span", { className: "inventory-slot-equipped", children: "E" }) : null] }, `${item?.id ?? 'empty'}-${index}`));
-                                            }) })] })] }), _jsxs("section", { className: "inventory-right-column", "aria-live": "polite", children: [_jsx("div", { className: "inventory-panel-title", children: "Item Information" }), activeItem ? (_jsxs("div", { className: "inventory-item-details", children: [_jsxs("div", { className: "inventory-item-header", children: [_jsx("span", { className: "inventory-item-large-icon", "aria-hidden": "true", children: _jsx("img", { className: "inventory-item-large-image", src: activeItem.imagePath, alt: "", draggable: false }) }), _jsxs("div", { children: [_jsx("h3", { className: "inventory-item-name", children: activeItem.name.toUpperCase() }), _jsxs("div", { className: "inventory-item-meta", children: [_jsx("span", { children: activeItem.category }), _jsx("span", { className: `inventory-rarity-chip ${rarityClassName(activeItem.rarity)}`, children: activeItem.rarity })] })] })] }), _jsx("div", { className: "inventory-equipped-state", children: equippedItemIds.has(activeItem.id) ? 'Currently equipped' : 'Stored in bag' }), _jsxs("div", { className: "inventory-equipped-state", children: ["Quantity: ", activeItem.quantity] }), _jsx("div", { className: "inventory-detail-group", children: activeItem.stats.map((line) => (_jsx(ItemDetailLine, { label: line.label, value: line.value }, `stats-${line.label}`))) }), _jsxs("div", { className: "inventory-subsection", children: [_jsx("h4", { children: "Bonuses" }), activeItem.bonuses.map((line) => (_jsx(ItemDetailLine, { label: line.label, value: line.value }, `bonus-${line.label}`)))] }), _jsxs("div", { className: "inventory-subsection", children: [_jsx("h4", { children: "Powers" }), _jsx("div", { className: "inventory-badge-list", children: activeItem.powers.map((power) => (_jsx("span", { className: "inventory-badge", children: power }, power))) })] }), _jsxs("div", { className: "inventory-subsection", children: [_jsx("h4", { children: "Attributes" }), _jsx("div", { className: "inventory-badge-list", children: activeItem.attributes.map((attribute) => (_jsx("span", { className: "inventory-badge", children: attribute }, attribute))) })] }), _jsxs("div", { className: "inventory-subsection", children: [_jsx("h4", { children: "Effects" }), _jsx("div", { className: "inventory-description", children: activeItem.effects.join(' ') })] }), _jsxs("div", { className: "inventory-subsection", children: [_jsx("h4", { children: "Description" }), _jsx("p", { className: "inventory-description", children: activeItem.description })] }), selectedItem && selectedItem.id === activeItem.id && selectedItem.actionType !== 'none' ? (_jsx(ItemActionArea, { selectedItem: selectedItem, isEquipped: equippedItemIds.has(selectedItem.id), onEquip: handleEquipItem, onUnequip: handleUnequipItem, onUse: handleUseItem })) : null, actionFeedback && selectedItem && selectedItem.id === activeItem.id ? (_jsx("div", { className: "inventory-action-feedback", children: actionFeedback })) : null] })) : (_jsx("div", { className: "inventory-empty-state", children: "Select an item to view its details." }))] })] }) }), isOpen && tooltip ? (_jsxs("div", { className: "inventory-tooltip", style: { left: Math.min(tooltip.x + 18, window.innerWidth - 260), top: Math.max(16, tooltip.y - 8) }, role: "tooltip", children: [_jsx("strong", { children: tooltip.item.name }), _jsx("span", { children: tooltip.item.category }), _jsx("img", { className: "inventory-tooltip-image", src: tooltip.item.imagePath, alt: "", draggable: false }), _jsx("p", { children: tooltip.item.description })] })) : null] }));
+                                            }) })] })] }), _jsxs("section", { className: "inventory-right-column", "aria-live": "polite", children: [_jsx("div", { className: "inventory-panel-title", children: "Item Information" }), activeItem ? (_jsxs("div", { className: "inventory-item-details", children: [_jsxs("div", { className: "inventory-item-header", children: [_jsx("span", { className: "inventory-item-large-icon", "aria-hidden": "true", children: _jsx("img", { className: "inventory-item-large-image", src: activeItem.imagePath, alt: "", draggable: false }) }), _jsxs("div", { children: [_jsx("h3", { className: "inventory-item-name", children: activeItem.name.toUpperCase() }), _jsxs("div", { className: "inventory-item-meta", children: [_jsx("span", { children: activeItem.category }), _jsx("span", { className: `inventory-rarity-chip ${rarityClassName(activeItem.rarity)}`, children: activeItem.rarity })] })] })] }), _jsx("div", { className: "inventory-equipped-state", children: equippedItemIds.has(activeItem.id) ? 'Currently equipped' : 'Stored in bag' }), _jsxs("div", { className: "inventory-equipped-state", children: ["Quantity: ", activeItem.quantity] }), _jsx("div", { className: "inventory-detail-group", children: activeItem.stats.map((line) => (_jsx(ItemDetailLine, { label: line.label, value: line.value }, `stats-${line.label}`))) }), _jsxs("div", { className: "inventory-subsection", children: [_jsx("h4", { children: "Bonuses" }), activeItem.bonuses.map((line) => (_jsx(ItemDetailLine, { label: line.label, value: line.value }, `bonus-${line.label}`)))] }), _jsxs("div", { className: "inventory-subsection", children: [_jsx("h4", { children: "Powers" }), _jsx("div", { className: "inventory-badge-list", children: activeItem.powers.map((power) => (_jsx("span", { className: "inventory-badge", children: power }, power))) })] }), _jsxs("div", { className: "inventory-subsection", children: [_jsx("h4", { children: "Attributes" }), _jsx("div", { className: "inventory-badge-list", children: activeItem.attributes.map((attribute) => (_jsx("span", { className: "inventory-badge", children: attribute }, attribute))) })] }), _jsxs("div", { className: "inventory-subsection", children: [_jsx("h4", { children: "Effects" }), _jsx("div", { className: "inventory-description", children: activeItem.effects.join(' ') })] }), _jsxs("div", { className: "inventory-subsection", children: [_jsx("h4", { children: "Description" }), _jsx("p", { className: "inventory-description", children: activeItem.description })] }), selectedItem && selectedItem.id === activeItem.id && selectedItem.actionType !== 'none' ? (_jsx(ItemActionArea, { selectedItem: selectedItem, isEquipped: equippedItemIds.has(selectedItem.id), onEquip: handleEquipItem, onUnequip: handleUnequipItem, onUse: handleUseItem, onRemove: handleRemoveRequest })) : null, actionFeedback && selectedItem && selectedItem.id === activeItem.id ? (_jsx("div", { className: "inventory-action-feedback", children: actionFeedback })) : null] })) : (_jsx("div", { className: "inventory-empty-state", children: "Select an item to view its details." }))] })] }) }), isOpen && tooltip ? (_jsxs("div", { className: "inventory-tooltip", style: { left: Math.min(tooltip.x + 18, window.innerWidth - 260), top: Math.max(16, tooltip.y - 8) }, role: "tooltip", children: [_jsx("strong", { children: tooltip.item.name }), _jsx("span", { children: tooltip.item.category }), _jsx("img", { className: "inventory-tooltip-image", src: tooltip.item.imagePath, alt: "", draggable: false }), _jsx("p", { children: tooltip.item.description })] })) : null, isOpen && removeCandidate ? (_jsx("div", { className: "inventory-confirm-backdrop", role: "presentation", children: _jsxs("div", { className: "inventory-confirm-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "inventory-remove-title", children: [_jsx("div", { className: "inventory-confirm-header", children: _jsx("h3", { id: "inventory-remove-title", children: "\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DC\u05DB\u05EA \u05E4\u05E8\u05D9\u05D8" }) }), _jsx("div", { className: "inventory-confirm-body", children: _jsxs("div", { className: "inventory-confirm-item-row", children: [_jsx("img", { className: "inventory-confirm-item-image", src: removeCandidate.imagePath, alt: "", draggable: false }), _jsxs("div", { children: [_jsx("strong", { children: removeCandidate.name }), _jsx("p", { children: "\u05D4\u05D0\u05DD \u05D0\u05EA\u05D4 \u05D1\u05D8\u05D5\u05D7 \u05E9\u05D1\u05E8\u05E6\u05D5\u05E0\u05DA \u05DC\u05D4\u05E1\u05D9\u05E8 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D9\u05D8 \u05DE\u05D4\u05EA\u05D9\u05E7 \u05D5\u05DC\u05D4\u05E9\u05DC\u05D9\u05DA \u05D0\u05D5\u05EA\u05D5 \u05DC\u05D9\u05D3 \u05D4\u05D3\u05DE\u05D5\u05EA?" })] })] }) }), _jsxs("div", { className: "inventory-confirm-actions", children: [_jsx("button", { className: "inventory-action-button secondary-button", type: "button", onClick: handleCancelRemove, children: "\u05D1\u05D9\u05D8\u05D5\u05DC" }), _jsx("button", { className: "inventory-action-button inventory-remove-button", type: "button", onClick: handleConfirmRemove, children: "\u05DB\u05DF, \u05DC\u05D4\u05E9\u05DC\u05D9\u05DA" })] })] }) })) : null] }));
 }

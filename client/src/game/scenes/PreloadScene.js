@@ -1,7 +1,13 @@
 import Phaser from 'phaser';
+import { INVENTORY_ITEMS, createWorldPickupTextureKey } from '@/game/inventory/catalog';
 export class PreloadScene extends Phaser.Scene {
     constructor() {
         super('PreloadScene');
+    }
+    preload() {
+        for (const item of INVENTORY_ITEMS) {
+            this.load.image(createWorldPickupTextureKey(item.id), item.imagePath);
+        }
     }
     create() {
         const width = this.cameras.main.width;

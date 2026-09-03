@@ -18,5 +18,7 @@ export interface UiState {
 export interface GameState {
   player: import('@shared/types').PlayerState;
   quest: import('@shared/types').QuestState;
+  collectedPickupIds: string[];
+  droppedPickups: import('@shared/types').DroppedPickupState[];
   ui: UiState;
 }

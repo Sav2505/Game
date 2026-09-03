@@ -45,6 +45,7 @@ export function Hud() {
           <div>A / Left Arrow - Move Left</div>
           <div>D / Right Arrow - Move Right</div>
           <div>SPACE - Jump</div>
+          <div>S - Collect Item</div>
           <div>X - Attack</div>
           <div>E - Interact</div>
         </div>

@@ -6,16 +6,19 @@ import { createForestWorld } from '@/game/world/createForestWorld';
 import { Player } from '@/game/entities/Player';
 import { Slime } from '@/game/entities/Slime';
 import { ForestGuide } from '@/game/entities/ForestGuide';
+import { WorldPickupItem } from '@/game/entities/WorldPickupItem';
 import { CombatSystem } from '@/game/combat/CombatSystem';
 import { CurrencySystem } from '@/game/systems/CurrencySystem';
 import { ExperienceSystem } from '@/game/systems/ExperienceSystem';
 import { QuestSystem } from '@/game/systems/QuestSystem';
 import { characterStore } from '@/state/characterStore';
 import { PLAYER_CONFIG, QUEST_REWARD, REACT_HUD_UPDATE_DISTANCE } from '@/game/config/constants';
+import { createInventoryItemById, createWorldPickupTextureKey } from '@/game/inventory/catalog';
 export class GameScene extends Phaser.Scene {
     player;
     slimes = [];
     guide;
+    worldItems = [];
     platforms;
     keys;
     combatSystem;
@@ -26,11 +29,13 @@ export class GameScene extends Phaser.Scene {
     worldBounds = { width: 0, height: 0 };
     respawnPoint = new Phaser.Math.Vector2(0, 0);
     guidePrompt;
+    pickupPrompt;
     attackCooldownHintUntil = 0;
     savedSnapshot;
     runtimeBridge = {
         respawnPlayer: () => this.respawnPlayer(),
-        claimQuestReward: () => this.claimQuestReward()
+        claimQuestReward: () => this.claimQuestReward(),
+        dropInventoryItem: (itemId) => this.dropInventoryItem(itemId)
     };
     unsubscribeCharacterStore;
     constructor() {
@@ -39,7 +44,9 @@ export class GameScene extends Phaser.Scene {
     create() {
         this.savedSnapshot = {
             player: gameStore.getState().player,
-            quest: gameStore.getState().quest
+            quest: gameStore.getState().quest,
+            collectedPickupIds: gameStore.getState().collectedPickupIds,
+            droppedPickups: gameStore.getState().droppedPickups
         };
         gameStore.resetUi();
         gameRuntime.register(this.runtimeBridge);
@@ -94,8 +101,28 @@ export class GameScene extends Phaser.Scene {
             backgroundColor: 'rgba(6, 12, 24, 0.72)',
             padding: { left: 10, right: 10, top: 6, bottom: 6 }
         }).setOrigin(0.5).setDepth(30).setVisible(false);
+        this.pickupPrompt = this.add.text(0, 0, 'לחץ S לאיסוף', {
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '18px',
+            color: '#fff7d5',
+            backgroundColor: 'rgba(6, 12, 24, 0.72)',
+            padding: { left: 10, right: 10, top: 6, bottom: 6 }
+        }).setOrigin(0.5).setDepth(30).setVisible(false);
         this.slimes = forestWorld.slimeSpawns.map((spawn) => new Slime(this, spawn.x, spawn.y, {
             onDefeated: (slime) => this.handleSlimeDefeated(slime)
+        }));
+        const droppedPickups = gameStore.getState().droppedPickups.map((pickup) => ({
+            pickupId: pickup.pickupId,
+            itemId: pickup.itemId,
+            textureKey: createWorldPickupTextureKey(pickup.itemId),
+            position: new Phaser.Math.Vector2(pickup.x, pickup.y)
+        }));
+        this.worldItems = [...forestWorld.pickupSpawns, ...droppedPickups]
+            .filter((spawn) => !gameStore.getState().collectedPickupIds.includes(spawn.pickupId))
+            .map((spawn) => new WorldPickupItem(this, spawn.position.x, spawn.position.y, {
+            pickupId: spawn.pickupId,
+            itemId: spawn.itemId,
+            textureKey: spawn.textureKey
         }));
         this.addPhysicsInteractions();
         this.setupInput();
@@ -111,23 +138,31 @@ export class GameScene extends Phaser.Scene {
     }
     update(_time, _delta) {
         this.parallax.update(this.cameras.main.scrollX);
-        this.updatePromptPosition();
+        const activePickup = this.getActivePickup();
+        this.updatePromptPosition(activePickup);
         if (this.player.isDead) {
             this.player.setVelocityX(0);
             this.player.setVelocityY(0);
             gameStore.setPrompt(null);
+            this.guidePrompt.setVisible(false);
+            this.pickupPrompt.setVisible(false);
             return;
         }
         const controls = this.getControls();
         this.player.updateControls(controls, this.time.now);
+        if (controls.pickup && activePickup) {
+            this.handleItemPickup(activePickup);
+        }
         if (controls.interact && this.isNearGuide()) {
             gameStore.setDialogueOpen(true);
             gameStore.setQuestOpen(true);
             gameStore.setPrompt(null);
         }
         const guideNearby = this.isNearGuide();
-        gameStore.setPrompt(guideNearby && !gameStore.getState().ui.dialogueOpen ? 'Press E' : null);
-        this.guidePrompt.setVisible(guideNearby && !gameStore.getState().ui.dialogueOpen);
+        const showGuidePrompt = guideNearby && !activePickup && !gameStore.getState().ui.dialogueOpen;
+        gameStore.setPrompt(activePickup ? 'לחץ S לאיסוף' : showGuidePrompt ? 'Press E' : null);
+        this.guidePrompt.setVisible(showGuidePrompt);
+        this.pickupPrompt.setVisible(Boolean(activePickup));
         if (controls.attackPressed && this.time.now >= this.attackCooldownHintUntil) {
             const attacked = this.combatSystem.performPlayerAttack(this.player, this.slimes.filter((slime) => !slime.isDead));
             if (attacked) {
@@ -174,6 +209,25 @@ export class GameScene extends Phaser.Scene {
         gameStore.setQuestOpen(false);
         this.time.delayedCall(1800, () => gameStore.setNotification(null));
     }
+    dropInventoryItem(itemId) {
+        const itemDefinition = createInventoryItemById(itemId);
+        if (!itemDefinition) {
+            return;
+        }
+        const pickupId = `dropped-${itemId}-${crypto.randomUUID()}`;
+        const pickupX = this.player.x;
+        const pickupY = this.player.y - 18;
+        const pickup = new WorldPickupItem(this, this.player.x, this.player.y - 18, {
+            pickupId,
+            itemId,
+            textureKey: createWorldPickupTextureKey(itemId),
+            scale: 0.42
+        });
+        this.worldItems.push(pickup);
+        gameStore.addDroppedPickup({ pickupId, itemId, x: pickupX, y: pickupY });
+        this.spawnFlash(pickup.x, pickup.y, 0xffd899);
+        this.spawnFloatingText(this.player.x, this.player.y - 72, `${itemDefinition.name} הושלך`, '#ffd79b');
+    }
     handleSlimeDefeated(slime) {
         const currentPlayer = gameStore.getState().player;
         const afterXp = this.experienceSystem.addExperience(currentPlayer, slime.xpReward);
@@ -191,6 +245,31 @@ export class GameScene extends Phaser.Scene {
             gameStore.setQuestOpen(true);
         }
     }
+    handleItemPickup(item) {
+        if (item.isCollected) {
+            return;
+        }
+        const addedItem = gameStore.addInventoryItem(item.itemId);
+        if (!addedItem) {
+            return;
+        }
+        this.worldItems = this.worldItems.filter((worldItem) => worldItem !== item);
+        if (item.pickupId.startsWith('dropped-')) {
+            gameStore.removeDroppedPickup(item.pickupId);
+        }
+        else {
+            gameStore.addCollectedPickupId(item.pickupId);
+        }
+        gameStore.setPrompt(null);
+        gameStore.setNotification({ message: `${addedItem.name} נוסף לתיק.`, kind: 'success' });
+        this.time.delayedCall(1800, () => gameStore.setNotification(null));
+        this.spawnFlash(item.x, item.y, 0xb9e7ff);
+        this.spawnHitParticles(item.x, item.y, 0xb9e7ff);
+        this.spawnFloatingText(this.player.x, this.player.y - 88, `+ ${addedItem.name}`, '#bfe8ff');
+        item.collectTo(this.player.x, this.player.y - 28, () => {
+            this.pickupPrompt.setVisible(false);
+        });
+    }
     addPhysicsInteractions() {
         this.physics.add.collider(this.player, this.platforms);
         for (const slime of this.slimes) {
@@ -203,6 +282,7 @@ export class GameScene extends Phaser.Scene {
             left: Phaser.Input.Keyboard.KeyCodes.A,
             right: Phaser.Input.Keyboard.KeyCodes.D,
             jump: Phaser.Input.Keyboard.KeyCodes.SPACE,
+            pickup: Phaser.Input.Keyboard.KeyCodes.S,
             attack: Phaser.Input.Keyboard.KeyCodes.X,
             interact: Phaser.Input.Keyboard.KeyCodes.E,
             cursorLeft: Phaser.Input.Keyboard.KeyCodes.LEFT,
@@ -228,15 +308,34 @@ export class GameScene extends Phaser.Scene {
             left: this.keys.left.isDown || this.keys.cursorLeft.isDown,
             right: this.keys.right.isDown || this.keys.cursorRight.isDown,
             jumpPressed: Phaser.Input.Keyboard.JustDown(this.keys.jump) || Phaser.Input.Keyboard.JustDown(this.keys.cursorUp),
+            pickup: Phaser.Input.Keyboard.JustDown(this.keys.pickup),
             attackPressed: Phaser.Input.Keyboard.JustDown(this.keys.attack),
             interact: Phaser.Input.Keyboard.JustDown(this.keys.interact)
         };
     }
+    getActivePickup() {
+        let nearestPickup = null;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+        for (const item of this.worldItems) {
+            if (item.isCollected || !this.physics.world.overlap(this.player, item)) {
+                continue;
+            }
+            const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, item.x, item.y);
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestPickup = item;
+            }
+        }
+        return nearestPickup;
+    }
     isNearGuide() {
         return Phaser.Math.Distance.Between(this.player.x, this.player.y, this.guide.x, this.guide.y) <= REACT_HUD_UPDATE_DISTANCE;
     }
-    updatePromptPosition() {
+    updatePromptPosition(activePickup) {
         this.guidePrompt.setPosition(this.guide.x, this.guide.y - 72);
+        if (activePickup) {
+            this.pickupPrompt.setPosition(activePickup.x, activePickup.y - 56);
+        }
     }
     clampPlayerState() {
         if (this.player.x < 0) {

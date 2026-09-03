@@ -353,6 +353,7 @@ export function ensureCharacterTextures(scene: Phaser.Scene): void {
   ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.stand, '/assets/characters/player/body/stand.png');
   ensureImageTexture(scene, 'character-helmet-hat-1', '/assets/characters/player/helmets/hat_1.png');
   ensureImageTexture(scene, 'character-top-shirt-1', '/assets/characters/player/tops/shirt_1.png');
+  ensureImageTexture(scene, 'character-top-shirt-2', '/assets/characters/player/tops/shirt_2.png');
   ensureImageTexture(scene, 'character-top-shirt-1-jump', '/assets/characters/player/tops/jump/shirt_1-jump.png');
   ensureImageTexture(scene, 'character-pants-1', '/assets/characters/player/pants/pants_1.png');
   ensureImageTexture(scene, 'character-pants-1-jump', '/assets/characters/player/pants/jump/pants_1-jump.png');

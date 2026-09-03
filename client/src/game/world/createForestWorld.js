@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GROUND_Y, LEVEL_HEIGHT, LEVEL_WIDTH } from '@/game/config/constants';
+import { createWorldPickupTextureKey } from '@/game/inventory/catalog';
 export function createForestWorld(scene) {
     const platforms = scene.physics.add.staticGroup();
     for (let x = 0; x < LEVEL_WIDTH; x += 128) {
@@ -48,6 +49,14 @@ export function createForestWorld(scene) {
             new Phaser.Math.Vector2(1760, GROUND_Y - 140),
             new Phaser.Math.Vector2(2180, GROUND_Y - 140),
             new Phaser.Math.Vector2(2640, GROUND_Y - 140)
+        ],
+        pickupSpawns: [
+            {
+                pickupId: 'forest-guide-shirt-2',
+                itemId: 'shirt-2',
+                textureKey: createWorldPickupTextureKey('shirt-2'),
+                position: new Phaser.Math.Vector2(1040, GROUND_Y - 136)
+            }
         ]
     };
 }

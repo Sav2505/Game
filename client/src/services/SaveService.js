@@ -1,3 +1,4 @@
+import { createInitialInventoryItems } from '@/game/inventory/catalog';
 const SAVE_KEY = 'modern-rpg.save.v1';
 export const defaultPlayer = {
     id: 'player-1',
@@ -7,7 +8,8 @@ export const defaultPlayer = {
     maxXp: 100,
     hp: 100,
     maxHp: 100,
-    gold: 100
+    gold: 100,
+    inventory: createInitialInventoryItems()
 };
 export const defaultQuest = {
     id: 'slime-trouble',
@@ -38,7 +40,17 @@ export function loadSavedGame() {
         return {
             player: {
                 ...defaultPlayer,
-                ...parsed.player
+                ...parsed.player,
+                inventory: Array.isArray(parsed.player.inventory)
+                    ? parsed.player.inventory.map((item) => ({
+                        ...item,
+                        stats: item.stats.map((line) => ({ ...line })),
+                        bonuses: item.bonuses.map((line) => ({ ...line })),
+                        powers: [...item.powers],
+                        attributes: [...item.attributes],
+                        effects: [...item.effects]
+                    }))
+                    : createInitialInventoryItems()
             },
             quest: {
                 ...defaultQuest,
@@ -47,7 +59,11 @@ export function loadSavedGame() {
                     ...defaultQuest.reward,
                     ...parsed.quest.reward
                 }
-            }
+            },
+            collectedPickupIds: Array.isArray(parsed.collectedPickupIds) ? [...parsed.collectedPickupIds] : [],
+            droppedPickups: Array.isArray(parsed.droppedPickups)
+                ? parsed.droppedPickups.map((pickup) => ({ ...pickup }))
+                : []
         };
     }
     catch {
