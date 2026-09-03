@@ -1,7 +1,8 @@
 import { createInitialInventoryItems } from '@/game/inventory/catalog';
+import { getOrCreateClientPlayerId } from '@/services/multiplayerIdentity';
 const SAVE_KEY = 'modern-rpg.save.v1';
 export const defaultPlayer = {
-    id: 'player-1',
+    id: getOrCreateClientPlayerId(),
     name: 'Aeris',
     level: 1,
     xp: 0,
@@ -41,6 +42,7 @@ export function loadSavedGame() {
             player: {
                 ...defaultPlayer,
                 ...parsed.player,
+                id: getOrCreateClientPlayerId(),
                 inventory: Array.isArray(parsed.player.inventory)
                     ? parsed.player.inventory.map((item) => ({
                         ...item,

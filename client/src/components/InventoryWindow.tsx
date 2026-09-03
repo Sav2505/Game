@@ -105,6 +105,7 @@ export function InventoryWindow() {
   const [tooltip, setTooltip] = useState<ItemTooltipState | null>(null);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [removeCandidateId, setRemoveCandidateId] = useState<string | null>(null);
+  const [dropInFlight, setDropInFlight] = useState(false);
 
   useEffect(() => {
     if (!selectedItemId) {
@@ -225,33 +226,40 @@ export function InventoryWindow() {
     setRemoveCandidateId(selectedItem.id);
   };
 
-  const handleConfirmRemove = () => {
+  const handleConfirmRemove = async () => {
     if (!removeCandidate) {
       setRemoveCandidateId(null);
       return;
     }
 
-    const wasEquipped = removeCandidate.actionType === 'equippable' && equippedItemIds.has(removeCandidate.id);
-    if (wasEquipped && removeCandidate.equipSlot) {
-      characterStore.setEquipment(removeCandidate.equipSlot, null);
-    }
+    setDropInFlight(true);
+    try {
+      const dropped = await gameRuntime.dropInventoryItem(removeCandidate.id);
+      if (!dropped) {
+        return;
+      }
 
-    const removedLastItem = removeCandidate.quantity <= 1;
-    const removed = gameStore.consumeInventoryItem(removeCandidate.id);
-    if (!removed) {
+      const wasEquipped = removeCandidate.actionType === 'equippable' && equippedItemIds.has(removeCandidate.id);
+      if (wasEquipped && removeCandidate.equipSlot) {
+        characterStore.setEquipment(removeCandidate.equipSlot, null);
+      }
+
+      const removedLastItem = removeCandidate.quantity <= 1;
+      const removed = gameStore.consumeInventoryItem(removeCandidate.id);
+      if (!removed) {
+        return;
+      }
+
+      if (removedLastItem && selectedItemId === removeCandidate.id) {
+        setSelectedItemId(null);
+      }
+
+      setActionFeedback(`${removeCandidate.name} הוסר מהתיק והושלך לקרקע.`);
+      gameStore.setNotification({ message: `${removeCandidate.name} הושלך לידך.`, kind: 'info' });
       setRemoveCandidateId(null);
-      return;
+    } finally {
+      setDropInFlight(false);
     }
-
-    gameRuntime.dropInventoryItem(removeCandidate.id);
-
-    if (removedLastItem && selectedItemId === removeCandidate.id) {
-      setSelectedItemId(null);
-    }
-
-    setActionFeedback(`${removeCandidate.name} הוסר מהתיק והושלך לקרקע.`);
-    gameStore.setNotification({ message: `${removeCandidate.name} הושלך לידך.`, kind: 'info' });
-    setRemoveCandidateId(null);
   };
 
   const handleCancelRemove = () => {
@@ -470,8 +478,8 @@ export function InventoryWindow() {
               <button className="inventory-action-button secondary-button" type="button" onClick={handleCancelRemove}>
                 ביטול
               </button>
-              <button className="inventory-action-button inventory-remove-button" type="button" onClick={handleConfirmRemove}>
-                כן, להשליך
+              <button className="inventory-action-button inventory-remove-button" type="button" onClick={() => void handleConfirmRemove()} disabled={dropInFlight}>
+                {dropInFlight ? 'משליך...' : 'כן, להשליך'}
               </button>
             </div>
           </div>

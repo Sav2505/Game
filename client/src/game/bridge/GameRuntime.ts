@@ -1,7 +1,7 @@
 export interface GameRuntimeBridge {
   respawnPlayer(): void;
   claimQuestReward(): void;
-  dropInventoryItem(itemId: string): void;
+  dropInventoryItem(itemId: string): Promise<boolean>;
 }
 
 let bridge: GameRuntimeBridge | null = null;
@@ -21,7 +21,7 @@ export const gameRuntime = {
   claimQuestReward(): void {
     bridge?.claimQuestReward();
   },
-  dropInventoryItem(itemId: string): void {
-    bridge?.dropInventoryItem(itemId);
+  dropInventoryItem(itemId: string): Promise<boolean> {
+    return bridge?.dropInventoryItem(itemId) ?? Promise.resolve(false);
   }
 };

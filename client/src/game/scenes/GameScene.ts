@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { SavedGameSnapshot } from '@shared/types';
+import type { RemotePlayerSnapshot, SavedGameSnapshot, WorldPickupState } from '@shared/types';
 import { gameStore } from '@/state/gameStore';
 import { gameRuntime } from '@/game/bridge/GameRuntime';
 import { createParallaxBackground } from '@/game/world/createParallaxBackground';
@@ -7,6 +7,7 @@ import { createForestWorld } from '@/game/world/createForestWorld';
 import { Player } from '@/game/entities/Player';
 import { Slime } from '@/game/entities/Slime';
 import { ForestGuide } from '@/game/entities/ForestGuide';
+import { RemotePlayer } from '@/game/entities/RemotePlayer';
 import { WorldPickupItem } from '@/game/entities/WorldPickupItem';
 import { CombatSystem } from '@/game/combat/CombatSystem';
 import { CurrencySystem } from '@/game/systems/CurrencySystem';
@@ -15,6 +16,7 @@ import { QuestSystem } from '@/game/systems/QuestSystem';
 import { characterStore } from '@/state/characterStore';
 import { PLAYER_CONFIG, QUEST_REWARD, REACT_HUD_UPDATE_DISTANCE, SLIME_CONFIG } from '@/game/config/constants';
 import { createInventoryItemById, createWorldPickupTextureKey } from '@/game/inventory/catalog';
+import { networkService } from '@/services/NetworkService';
 
 type ControlKeys = {
   left: Phaser.Input.Keyboard.Key;
@@ -35,7 +37,11 @@ export class GameScene extends Phaser.Scene {
 
   private guide!: ForestGuide;
 
-  private worldItems: WorldPickupItem[] = [];
+  private readonly worldItems = new Map<string, WorldPickupItem>();
+
+  private readonly remotePlayers = new Map<string, RemotePlayer>();
+
+  private readonly pendingPickupIds = new Set<string>();
 
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
 
@@ -61,6 +67,10 @@ export class GameScene extends Phaser.Scene {
 
   private attackCooldownHintUntil = 0;
 
+  private lastNetworkSyncAt = 0;
+
+  private lastPublishedPlayerSnapshotKey = '';
+
   private savedSnapshot!: SavedGameSnapshot;
 
   private readonly runtimeBridge = {
@@ -70,6 +80,8 @@ export class GameScene extends Phaser.Scene {
   };
 
   private unsubscribeCharacterStore?: () => void;
+
+  private unsubscribeNetworkState?: () => void;
 
   public constructor() {
     super('GameScene');
@@ -126,6 +138,12 @@ export class GameScene extends Phaser.Scene {
       this.player.characterRenderer.setCharacter(characterStore.getState().character);
     });
 
+    networkService.connect(gameStore.getState().player.name);
+    this.unsubscribeNetworkState = networkService.subscribe((networkState) => {
+      this.syncWorldPickups(networkState.worldPickups);
+      this.syncRemotePlayers(networkState.remotePlayers);
+    });
+
     const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
     playerBody.setMaxVelocity(360, 900);
     playerBody.setCollideWorldBounds(true);
@@ -157,29 +175,27 @@ export class GameScene extends Phaser.Scene {
       onDefeated: (slime) => this.handleSlimeDefeated(slime)
     }));
 
-    const droppedPickups = gameStore.getState().droppedPickups.map((pickup) => ({
-      pickupId: pickup.pickupId,
-      itemId: pickup.itemId,
-      textureKey: createWorldPickupTextureKey(pickup.itemId),
-      position: new Phaser.Math.Vector2(pickup.x, pickup.y)
-    }));
-
-    this.worldItems = [...forestWorld.pickupSpawns, ...droppedPickups]
-      .filter((spawn) => !gameStore.getState().collectedPickupIds.includes(spawn.pickupId))
-      .map((spawn) => new WorldPickupItem(this, spawn.position.x, spawn.position.y, {
-        pickupId: spawn.pickupId,
-        itemId: spawn.itemId,
-        textureKey: spawn.textureKey
-      }));
-
     this.addPhysicsInteractions();
     this.setupInput();
     this.configureCamera();
     this.setupEvents();
+    this.syncWorldPickups(networkService.getState().worldPickups);
+    this.syncRemotePlayers(networkService.getState().remotePlayers);
+    this.publishLocalPlayerState(true);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeCharacterStore?.();
+      this.unsubscribeNetworkState?.();
       gameRuntime.unregister(this.runtimeBridge);
+      for (const worldItem of this.worldItems.values()) {
+        worldItem.destroy();
+      }
+      this.worldItems.clear();
+      for (const remotePlayer of this.remotePlayers.values()) {
+        remotePlayer.destroy();
+      }
+      this.remotePlayers.clear();
+      networkService.disconnect();
     });
 
     this.syncPlayerToStore();
@@ -196,6 +212,7 @@ export class GameScene extends Phaser.Scene {
     if (this.player.isDead) {
       this.player.setVelocityX(0);
       this.player.setVelocityY(0);
+      this.publishLocalPlayerState();
       gameStore.setPrompt(null);
       this.guidePrompt.setVisible(false);
       this.pickupPrompt.setVisible(false);
@@ -206,7 +223,7 @@ export class GameScene extends Phaser.Scene {
     this.player.updateControls(controls, this.time.now);
 
     if (controls.pickup && activePickup) {
-      this.handleItemPickup(activePickup);
+      void this.handleItemPickup(activePickup);
     }
 
     if (controls.interact && this.isNearGuide()) {
@@ -233,12 +250,18 @@ export class GameScene extends Phaser.Scene {
       slime.update(this.time.now, this.player);
     }
 
+    for (const remotePlayer of this.remotePlayers.values()) {
+      remotePlayer.update(this.time.now);
+    }
+
     if (this.player.state !== 'dead') {
       gameStore.patchPlayer({
         hp: this.player.health.currentHP,
         maxHp: this.player.health.maxHP
       });
     }
+
+    this.publishLocalPlayerState();
 
     this.clampPlayerState();
   }
@@ -274,26 +297,24 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(1800, () => gameStore.setNotification(null));
   }
 
-  public dropInventoryItem(itemId: string): void {
+  public async dropInventoryItem(itemId: string): Promise<boolean> {
     const itemDefinition = createInventoryItemById(itemId);
     if (!itemDefinition) {
-      return;
+      return false;
     }
 
-    const pickupId = `dropped-${itemId}-${crypto.randomUUID()}`;
-    const pickupX = this.player.x;
-    const pickupY = this.player.y - 18;
-    const pickup = new WorldPickupItem(this, this.player.x, this.player.y - 18, {
-      pickupId,
-      itemId,
-      textureKey: createWorldPickupTextureKey(itemId),
-      scale: 0.42
-    });
-
-    this.worldItems.push(pickup);
-    gameStore.addDroppedPickup({ pickupId, itemId, x: pickupX, y: pickupY });
-    this.spawnFlash(pickup.x, pickup.y, 0xffd899);
-    this.spawnFloatingText(this.player.x, this.player.y - 72, `${itemDefinition.name} הושלך`, '#ffd79b');
+    try {
+      const pickup = await networkService.requestDrop(itemId, this.player.x, this.player.y - 18);
+      this.spawnFlash(pickup.x, pickup.y, 0xffd899);
+      this.spawnFloatingText(this.player.x, this.player.y - 72, `${itemDefinition.name} הושלך`, '#ffd79b');
+      return true;
+    } catch (error) {
+      gameStore.setNotification({
+        message: error instanceof Error ? error.message : 'השלכת הפריט נכשלה.',
+        kind: 'warning'
+      });
+      return false;
+    }
   }
 
   private handleSlimeDefeated(slime: Slime): void {
@@ -315,33 +336,44 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private handleItemPickup(item: WorldPickupItem): void {
-    if (item.isCollected) {
+  private async handleItemPickup(item: WorldPickupItem): Promise<void> {
+    if (item.isCollected || this.pendingPickupIds.has(item.pickupId)) {
       return;
     }
 
-    const addedItem = gameStore.addInventoryItem(item.itemId);
-    if (!addedItem) {
-      return;
+    this.pendingPickupIds.add(item.pickupId);
+    const pickupX = item.x;
+    const pickupY = item.y;
+
+    try {
+      const result = await networkService.requestPickup(item.pickupId);
+      const addedItem = gameStore.addInventoryItem(result.itemId);
+      if (!addedItem) {
+        this.pendingPickupIds.delete(item.pickupId);
+        return;
+      }
+
+      gameStore.setPrompt(null);
+      gameStore.setNotification({ message: `${addedItem.name} נוסף לתיק.`, kind: 'success' });
+      this.spawnFlash(pickupX, pickupY, 0xb9e7ff);
+      this.spawnHitParticles(pickupX, pickupY, 0xb9e7ff);
+      this.spawnFloatingText(this.player.x, this.player.y - 88, `+ ${addedItem.name}`, '#bfe8ff');
+
+      const liveItem = this.worldItems.get(result.pickupId);
+      if (liveItem) {
+        liveItem.collectTo(this.player.x, this.player.y - 28, () => {
+          this.worldItems.delete(result.pickupId);
+          this.pickupPrompt.setVisible(false);
+        });
+      }
+    } catch (error) {
+      gameStore.setNotification({
+        message: error instanceof Error ? error.message : 'איסוף הפריט נכשל.',
+        kind: 'warning'
+      });
+    } finally {
+      this.pendingPickupIds.delete(item.pickupId);
     }
-
-    this.worldItems = this.worldItems.filter((worldItem) => worldItem !== item);
-    if (item.pickupId.startsWith('dropped-')) {
-      gameStore.removeDroppedPickup(item.pickupId);
-    } else {
-      gameStore.addCollectedPickupId(item.pickupId);
-    }
-    gameStore.setPrompt(null);
-    gameStore.setNotification({ message: `${addedItem.name} נוסף לתיק.`, kind: 'success' });
-    this.time.delayedCall(1800, () => gameStore.setNotification(null));
-
-    this.spawnFlash(item.x, item.y, 0xb9e7ff);
-    this.spawnHitParticles(item.x, item.y, 0xb9e7ff);
-    this.spawnFloatingText(this.player.x, this.player.y - 88, `+ ${addedItem.name}`, '#bfe8ff');
-
-    item.collectTo(this.player.x, this.player.y - 28, () => {
-      this.pickupPrompt.setVisible(false);
-    });
   }
 
   private addPhysicsInteractions(): void {
@@ -398,8 +430,8 @@ export class GameScene extends Phaser.Scene {
     let nearestPickup: WorldPickupItem | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
 
-    for (const item of this.worldItems) {
-      if (item.isCollected || !this.physics.world.overlap(this.player, item)) {
+    for (const item of this.worldItems.values()) {
+      if (item.isCollected || this.pendingPickupIds.has(item.pickupId) || !this.physics.world.overlap(this.player, item)) {
         continue;
       }
 
@@ -422,6 +454,104 @@ export class GameScene extends Phaser.Scene {
     if (activePickup) {
       this.pickupPrompt.setPosition(activePickup.x, activePickup.y - 56);
     }
+  }
+
+  private syncWorldPickups(pickups: WorldPickupState[]): void {
+    const pickupById = new Map(pickups.map((pickup) => [pickup.pickupId, pickup]));
+
+    for (const [pickupId, worldItem] of this.worldItems.entries()) {
+      const snapshot = pickupById.get(pickupId);
+      if (!snapshot || snapshot.collected) {
+        if (this.pendingPickupIds.has(pickupId)) {
+          continue;
+        }
+
+        worldItem.destroy();
+        this.worldItems.delete(pickupId);
+      }
+    }
+
+    for (const pickup of pickups) {
+      if (pickup.collected || this.worldItems.has(pickup.pickupId)) {
+        continue;
+      }
+
+      this.worldItems.set(pickup.pickupId, new WorldPickupItem(this, pickup.x, pickup.y, {
+        pickupId: pickup.pickupId,
+        itemId: pickup.itemId,
+        textureKey: createWorldPickupTextureKey(pickup.itemId),
+        scale: 0.18
+      }));
+    }
+  }
+
+  private syncRemotePlayers(players: RemotePlayerSnapshot[]): void {
+    const localPlayerId = networkService.getPlayerId();
+    const nextPlayers = new Map(
+      players
+        .filter((player) => player.playerId !== localPlayerId)
+        .map((player) => [player.playerId, player])
+    );
+
+    for (const [playerId, remotePlayer] of this.remotePlayers.entries()) {
+      const snapshot = nextPlayers.get(playerId);
+      if (!snapshot) {
+        remotePlayer.destroy();
+        this.remotePlayers.delete(playerId);
+        continue;
+      }
+
+      remotePlayer.applySnapshot(snapshot);
+    }
+
+    for (const [playerId, snapshot] of nextPlayers.entries()) {
+      if (this.remotePlayers.has(playerId)) {
+        continue;
+      }
+
+      this.remotePlayers.set(playerId, new RemotePlayer(this, snapshot));
+    }
+  }
+
+  private publishLocalPlayerState(force = false): void {
+    const snapshot = this.createLocalPlayerSnapshot();
+    const snapshotKey = JSON.stringify({
+      x: Math.round(snapshot.x),
+      y: Math.round(snapshot.y),
+      facing: snapshot.facing,
+      animationState: snapshot.animationState,
+      character: snapshot.character
+    });
+
+    if (!force && this.time.now - this.lastNetworkSyncAt < 80) {
+      return;
+    }
+
+    if (!force && snapshotKey === this.lastPublishedPlayerSnapshotKey) {
+      return;
+    }
+
+    this.lastPublishedPlayerSnapshotKey = snapshotKey;
+    this.lastNetworkSyncAt = this.time.now;
+    networkService.sendPlayerUpdate(snapshot);
+  }
+
+  private createLocalPlayerSnapshot(): RemotePlayerSnapshot {
+    const currentCharacter = characterStore.getState().character;
+    return {
+      playerId: networkService.getPlayerId(),
+      name: gameStore.getState().player.name,
+      x: this.player.x,
+      y: this.player.y,
+      facing: this.player.facing,
+      animationState: this.player.state === 'run'
+        ? 'walk'
+        : this.player.state === 'dead'
+          ? 'death'
+          : this.player.state,
+      character: currentCharacter,
+      updatedAt: Date.now()
+    };
   }
 
   private clampPlayerState(): void {

@@ -7,3 +7,4 @@ server/dist
 .env
 .env.*
 package-lock.json
+server/data/
