@@ -362,6 +362,12 @@ export function ensureCharacterTextures(scene: Phaser.Scene): void {
   ensureImageTexture(scene, 'character-gloves-1', '/assets/characters/player/gloves/gloves_1.png');
   ensureImageTexture(scene, 'character-gloves-1-jump', '/assets/characters/player/gloves/jump/gloves_1-jump.png');
   ensureImageTexture(scene, 'character-eyes-1', '/assets/characters/player/face/eyes/eyes_1.png');
+  ensureImageTexture(scene, 'character-mouth-1', '/assets/characters/player/face/mouth/mouth_1.png');
+  ensureImageTexture(
+  scene,
+  'character-mouth-2',
+  '/assets/characters/player/face/mouth/mouth_2.png',
+);
   ensureBodySpriteSheetTexture(
     scene,
     PLAYER_CHARACTER_BODY_TEXTURE_KEYS.walk,
@@ -369,7 +375,7 @@ export function ensureCharacterTextures(scene: Phaser.Scene): void {
     PLAYER_CHARACTER_ANIMATION_TIMING.fallbackWalkFrameCount,
   );
   ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.jump, '/assets/characters/player/body/jump.png');
-  ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.hurt, '/assets/characters/player/body/hurt.png');
+  ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.hurt, '/assets/characters/player/body/hurt.png', );
   generateTexture(scene, 'character-body-base', 96, 96, drawBody);
   generateTexture(scene, 'character-torso-base', 96, 96, drawTorso);
   generateTexture(scene, 'character-head-base', 96, 96, drawHead);

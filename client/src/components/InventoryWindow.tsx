@@ -306,6 +306,7 @@ export function InventoryWindow() {
                 <div className="inventory-character-avatar" aria-hidden="true">
                   <img className="avatar-layer avatar-base" src="/assets/characters/player/body/stand.png" alt="" />
                   <img className="avatar-layer avatar-face-eyes" src="/assets/characters/player/face/eyes/eyes_1.png" alt="" />
+                  <img className="avatar-layer avatar-face-mouth" src="/assets/characters/player/face/mouth/mouth_1.png" alt="" />
                   {pantsEquipmentPath ? <img className="avatar-layer avatar-pants" src={pantsEquipmentPath} alt="" /> : null}
                   {shoesEquipmentPath ? <img className="avatar-layer avatar-shoes" src={shoesEquipmentPath} alt="" /> : null}
                   {topEquipmentPath ? <img className="avatar-layer avatar-top" src={topEquipmentPath} alt="" /> : null}

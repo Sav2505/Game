@@ -392,7 +392,16 @@ input {
     width: 210px;
     height: 210px;
     left: 50%;
-    top: 40%;
+    top: 38%;
+    object-fit: contain;
+    transform: translate(-50%, -44%);
+}
+
+.avatar-face-mouth {
+    width: 210px;
+    height: 210px;
+    left: 50%;
+    top: 41%;
     object-fit: contain;
     transform: translate(-50%, -44%);
 }
@@ -418,6 +427,10 @@ input {
 }
 
 .avatar-face-eyes {
+    z-index: 7;
+}
+
+.avatar-face-mouth {
     z-index: 7;
 }
 

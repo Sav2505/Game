@@ -31,6 +31,7 @@ type LayerKey =
     | 'pants'
     | 'gloves'
     | 'eyes'
+    | 'mouth'
     | 'hair'
     | 'helmet'
     | 'weapon'
@@ -124,7 +125,7 @@ export class CharacterRenderer {
         this.updateLayerTexture('body', characterAppearance.body, false);
         this.layers.get('body')?.image.setVisible(true);
 
-        const placeholderLayerKeys: LayerKey[] = ['torso', 'head', 'eyes', 'hair', 'backArm', 'frontArm', 'backLeg', 'frontLeg', 'backShoe', 'frontShoe', 'cape', 'top', 'pants', 'gloves', 'helmet', 'accessory', 'weapon', 'effect'];
+        const placeholderLayerKeys: LayerKey[] = ['torso', 'head', 'eyes', 'mouth', 'hair', 'backArm', 'frontArm', 'backLeg', 'frontLeg', 'backShoe', 'frontShoe', 'cape', 'top', 'pants', 'gloves', 'helmet', 'accessory', 'weapon', 'effect'];
         for (const key of placeholderLayerKeys) {
             this.layers.get(key)?.image.setVisible(false);
         }
@@ -297,6 +298,7 @@ export class CharacterRenderer {
             { key: 'frontArm', textureKey: 'character-arm-base', x: 23, y: 6, scale: 1 },
             { key: 'head', textureKey: 'character-head-base', x: 0, y: -28, scale: 1 },
             { key: 'eyes', textureKey: 'character-eyes-1', x: 0, y: -28, scale: 1 },
+            { key: 'mouth', textureKey: 'character-mouth-1', x: 0, y: 0, scale: 1 },
             { key: 'hair', textureKey: 'character-hair-default', x: 0, y: -33, scale: 1 },
             { key: 'helmet', textureKey: 'character-helmet-basic', x: 0, y: -36, scale: 1 },
             { key: 'accessory', textureKey: 'character-accessory-star', x: 16, y: -10, scale: 1 },
@@ -311,6 +313,9 @@ export class CharacterRenderer {
                 this.setBodyDisplaySize(image);
             }
             if (layer.key === 'eyes') {
+                image.setDepth(10);
+            }
+            if (layer.key === 'mouth') {
                 image.setDepth(10);
             }
             if (typeof layer.alpha === 'number') {
@@ -696,6 +701,20 @@ export class CharacterRenderer {
             eyes.x = 1;
             eyes.y = -18;
             eyes.setDepth(1);
+        }
+
+        const mouth = this.layers.get('mouth')?.image;
+        if (mouth) {
+            mouth.setVisible(true);
+            mouth.setTexture(
+                this.animationState === 'hurt'
+                    ? 'character-mouth-2'
+                    : 'character-mouth-1',
+            );
+            mouth.setScale(0.1);
+            mouth.x = 0;
+            mouth.y = -13.5;
+            mouth.setDepth(1);
         }
 
         if (body) {
