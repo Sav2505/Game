@@ -100,6 +100,22 @@ function drawFaceIdle(graphics: Phaser.GameObjects.Graphics): void {
   graphics.fillRoundedRect(44, 57, 8, 2, 1);
 }
 
+function drawEyes(graphics: Phaser.GameObjects.Graphics): void {
+  graphics.clear();
+  graphics.fillStyle(0x5c3518, 1);
+  graphics.fillEllipse(34, 48, 10, 8);
+  graphics.fillEllipse(62, 48, 10, 8);
+  graphics.fillStyle(0xf4d7b2, 0.35);
+  graphics.fillEllipse(31, 46, 4, 3);
+  graphics.fillEllipse(59, 46, 4, 3);
+  graphics.fillStyle(0x2d1d1a, 1);
+  graphics.fillCircle(34, 48, 2);
+  graphics.fillCircle(62, 48, 2);
+  graphics.fillStyle(0xffffff, 0.5);
+  graphics.fillCircle(35, 46, 1.4);
+  graphics.fillCircle(63, 46, 1.4);
+}
+
 function drawFaceSmile(graphics: Phaser.GameObjects.Graphics): void {
   graphics.clear();
   graphics.fillStyle(0x2e221b, 1);
@@ -426,6 +442,9 @@ export function ensureCharacterTextures(scene: Phaser.Scene): void {
   ensureImageTexture(scene, 'character-helmet-hat-1', '/assets/characters/player/helmets/hat_1.png');
   ensureImageTexture(scene, 'character-top-shirt-1', '/assets/characters/player/tops/shirt_1.png');
   ensureImageTexture(scene, 'character-pants-1', '/assets/characters/player/pants/pants_1.png');
+  ensureImageTexture(scene, 'character-shoes-1', '/assets/characters/player/shoes/shoes_1.png');
+  ensureImageTexture(scene, 'character-gloves-1', '/assets/characters/player/gloves/gloves_1.png');
+  generateTexture(scene, 'character-eyes-1', 96, 96, drawEyes);
   ensureBodySpriteSheetTexture(
     scene,
     PLAYER_CHARACTER_BODY_TEXTURE_KEYS.walk,

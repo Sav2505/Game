@@ -14,6 +14,7 @@ export class CharacterShowcaseScene extends Phaser.Scene {
     four: Phaser.Input.Keyboard.Key;
     five: Phaser.Input.Keyboard.Key;
     six: Phaser.Input.Keyboard.Key;
+    seven: Phaser.Input.Keyboard.Key;
     left: Phaser.Input.Keyboard.Key;
     right: Phaser.Input.Keyboard.Key;
     attack: Phaser.Input.Keyboard.Key;
@@ -38,7 +39,7 @@ export class CharacterShowcaseScene extends Phaser.Scene {
       fontSize: '28px',
       color: '#fff7d5'
     }).setDepth(5);
-    this.add.text(32, 64, '1=top 2=helmet 3=weapon 4=shoes 5=cape 6=pants | arrows face | A/D animate | Z=death pose', {
+    this.add.text(32, 64, '1=top 2=helmet 3=weapon 4=shoes 5=gloves 6=cape 7=pants | arrows face | A/D animate | Z=death pose', {
       fontFamily: 'Inter, sans-serif',
       fontSize: '15px',
       color: '#aab6d6'
@@ -67,6 +68,7 @@ export class CharacterShowcaseScene extends Phaser.Scene {
       four: Phaser.Input.Keyboard.KeyCodes.FOUR,
       five: Phaser.Input.Keyboard.KeyCodes.FIVE,
       six: Phaser.Input.Keyboard.KeyCodes.SIX,
+      seven: Phaser.Input.Keyboard.KeyCodes.SEVEN,
       left: Phaser.Input.Keyboard.KeyCodes.LEFT,
       right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
       attack: Phaser.Input.Keyboard.KeyCodes.A,
@@ -89,9 +91,12 @@ export class CharacterShowcaseScene extends Phaser.Scene {
       characterStore.toggleDemoEquipment('shoes');
     }
     if (Phaser.Input.Keyboard.JustDown(this.keys.five)) {
-      characterStore.toggleDemoEquipment('cape');
+      characterStore.toggleDemoEquipment('gloves');
     }
     if (Phaser.Input.Keyboard.JustDown(this.keys.six)) {
+      characterStore.toggleDemoEquipment('cape');
+    }
+    if (Phaser.Input.Keyboard.JustDown(this.keys.seven)) {
       characterStore.toggleDemoEquipment('pants');
     }
 

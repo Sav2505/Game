@@ -41,9 +41,10 @@ export function CharacterShowcasePanel() {
         <button className="secondary-button" type="button" onClick={() => characterStore.toggleDemoEquipment('top')}>1 Shirt</button>
         <button className="secondary-button" type="button" onClick={() => characterStore.toggleDemoEquipment('helmet')}>2 Helmet</button>
         <button className="secondary-button" type="button" onClick={() => characterStore.toggleDemoEquipment('weapon')}>3 Weapon</button>
-        <button className="secondary-button" type="button" onClick={() => characterStore.toggleDemoEquipment('shoes')}>4 Boots</button>
-        <button className="secondary-button" type="button" onClick={() => characterStore.toggleDemoEquipment('cape')}>5 Cape</button>
-        <button className="secondary-button" type="button" onClick={() => characterStore.toggleDemoEquipment('pants')}>6 Pants</button>
+        <button className="secondary-button" type="button" onClick={() => characterStore.toggleDemoEquipment('shoes')}>4 Shoes</button>
+        <button className="secondary-button" type="button" onClick={() => characterStore.toggleDemoEquipment('gloves')}>5 Gloves</button>
+        <button className="secondary-button" type="button" onClick={() => characterStore.toggleDemoEquipment('cape')}>6 Cape</button>
+        <button className="secondary-button" type="button" onClick={() => characterStore.toggleDemoEquipment('pants')}>7 Pants</button>
       </div>
 
       <div className="showcase-buttons" style={{ marginTop: '14px' }}>

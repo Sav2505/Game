@@ -31,6 +31,7 @@ type LayerKey =
     | 'pants'
     | 'gloves'
     | 'face'
+    | 'eyes'
     | 'hair'
     | 'helmet'
     | 'weapon'
@@ -124,7 +125,7 @@ export class CharacterRenderer {
         this.updateLayerTexture('body', characterAppearance.body, false);
         this.layers.get('body')?.image.setVisible(true);
 
-        const placeholderLayerKeys: LayerKey[] = ['torso', 'head', 'face', 'hair', 'backArm', 'frontArm', 'backLeg', 'frontLeg', 'backShoe', 'frontShoe', 'cape', 'top', 'pants', 'gloves', 'helmet', 'accessory', 'weapon', 'effect'];
+        const placeholderLayerKeys: LayerKey[] = ['torso', 'head', 'face', 'eyes', 'hair', 'backArm', 'frontArm', 'backLeg', 'frontLeg', 'backShoe', 'frontShoe', 'cape', 'top', 'pants', 'gloves', 'helmet', 'accessory', 'weapon', 'effect'];
         for (const key of placeholderLayerKeys) {
             this.layers.get(key)?.image.setVisible(false);
         }
@@ -286,10 +287,10 @@ export class CharacterRenderer {
             { key: 'cape', textureKey: 'character-cape-red', x: -10, y: 12, scale: 1 },
             { key: 'backLeg', textureKey: 'character-leg-base', x: -10, y: 30, scale: 1 },
             { key: 'frontLeg', textureKey: 'character-leg-base', x: 10, y: 30, scale: 1 },
-            { key: 'backShoe', textureKey: 'character-shoes-basic', x: -10, y: 30, scale: 1 },
-            { key: 'frontShoe', textureKey: 'character-shoes-basic', x: 10, y: 30, scale: 1 },
             { key: 'body', textureKey: PLAYER_CHARACTER_BODY_TEXTURE_KEYS.stand, x: 0, y: 8, scale: 1 },
             { key: 'pants', textureKey: 'character-pants-basic', x: 0, y: 26, scale: 1 },
+            { key: 'backShoe', textureKey: 'character-shoes-basic', x: -10, y: 30, scale: 1 },
+            { key: 'frontShoe', textureKey: 'character-shoes-basic', x: 10, y: 30, scale: 1 },
             { key: 'backArm', textureKey: 'character-arm-base', x: -23, y: 6, scale: 1 },
             { key: 'torso', textureKey: 'character-torso-base', x: 0, y: 8, scale: 1 },
             { key: 'top', textureKey: 'character-top-basic', x: 0, y: 8, scale: 1 },
@@ -297,6 +298,7 @@ export class CharacterRenderer {
             { key: 'frontArm', textureKey: 'character-arm-base', x: 23, y: 6, scale: 1 },
             { key: 'head', textureKey: 'character-head-base', x: 0, y: -28, scale: 1 },
             { key: 'face', textureKey: 'character-face-idle', x: 0, y: -28, scale: 1 },
+            { key: 'eyes', textureKey: 'character-eyes-1', x: 0, y: -28, scale: 1 },
             { key: 'hair', textureKey: 'character-hair-default', x: 0, y: -33, scale: 1 },
             { key: 'helmet', textureKey: 'character-helmet-basic', x: 0, y: -36, scale: 1 },
             { key: 'accessory', textureKey: 'character-accessory-star', x: 16, y: -10, scale: 1 },
@@ -309,6 +311,11 @@ export class CharacterRenderer {
             image.setOrigin(0.5, 0.5);
             if (layer.key === 'body') {
                 this.setBodyDisplaySize(image);
+            }
+            if (layer.key === 'eyes') {
+                image.setDepth(10);
+            } else if (layer.key === 'face') {
+                image.setDepth(5);
             }
             if (typeof layer.alpha === 'number') {
                 image.setAlpha(layer.alpha);
@@ -435,9 +442,9 @@ export class CharacterRenderer {
         const equipmentLayers: Array<[LayerKey, EquipmentItem | null]> = [
             ['helmet', this.character.equipment.helmet ?? null],
             ['top', this.character.equipment.top ?? null],
-            ['pants', this.character.equipment.pants ?? null],
             ['backShoe', this.character.equipment.shoes ?? null],
             ['frontShoe', this.character.equipment.shoes ?? null],
+            ['pants', this.character.equipment.pants ?? null],
             ['gloves', this.character.equipment.gloves ?? null],
             ['cape', this.character.equipment.cape ?? null],
             ['weapon', this.character.equipment.weapon ?? null],
@@ -655,6 +662,16 @@ export class CharacterRenderer {
                                 : 'character-face-idle';
             face.setTexture(faceKey);
             face.setScale(1);
+            face.setVisible(true);
+        }
+
+        const eyes = this.layers.get('eyes')?.image;
+        if (eyes) {
+            eyes.setVisible(true);
+            eyes.setScale(1);
+            eyes.x = 0;
+            eyes.y = -28;
+            eyes.setDepth(1);
         }
 
         if (body) {
