@@ -8,9 +8,9 @@ export const DEMO_EQUIPMENT = {
         spriteKey: 'character-top-shirt-1',
         render: {
             coordinateSpace: 'characterCanvas512',
-            offsetX: -2,
-            offsetY: -92,
-            scale: 0.6
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1,
         },
         statBonuses: {
             defense: 1,
@@ -24,9 +24,9 @@ export const DEMO_EQUIPMENT = {
         spriteKey: 'character-pants-1',
         render: {
             coordinateSpace: 'characterCanvas512',
-            offsetX: -3,
-            offsetY: 50,
-            scale: 0.59
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1
         },
         statBonuses: {
             defense: 1,
@@ -40,9 +40,9 @@ export const DEMO_EQUIPMENT = {
         spriteKey: 'character-helmet-hat-1',
         render: {
             coordinateSpace: 'characterCanvas512',
-            offsetX: 1,
-            offsetY: -260,
-            scale: 0.29
+            offsetX: 0,
+            offsetY: -68,
+            scale: 0.8
         },
         statBonuses: {
             defense: 2,
