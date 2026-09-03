@@ -30,7 +30,6 @@ type LayerKey =
     | 'top'
     | 'pants'
     | 'gloves'
-    | 'face'
     | 'eyes'
     | 'hair'
     | 'helmet'
@@ -125,7 +124,7 @@ export class CharacterRenderer {
         this.updateLayerTexture('body', characterAppearance.body, false);
         this.layers.get('body')?.image.setVisible(true);
 
-        const placeholderLayerKeys: LayerKey[] = ['torso', 'head', 'face', 'eyes', 'hair', 'backArm', 'frontArm', 'backLeg', 'frontLeg', 'backShoe', 'frontShoe', 'cape', 'top', 'pants', 'gloves', 'helmet', 'accessory', 'weapon', 'effect'];
+        const placeholderLayerKeys: LayerKey[] = ['torso', 'head', 'eyes', 'hair', 'backArm', 'frontArm', 'backLeg', 'frontLeg', 'backShoe', 'frontShoe', 'cape', 'top', 'pants', 'gloves', 'helmet', 'accessory', 'weapon', 'effect'];
         for (const key of placeholderLayerKeys) {
             this.layers.get(key)?.image.setVisible(false);
         }
@@ -297,7 +296,6 @@ export class CharacterRenderer {
             { key: 'gloves', textureKey: 'character-gloves-basic', x: 0, y: 6, scale: 1 },
             { key: 'frontArm', textureKey: 'character-arm-base', x: 23, y: 6, scale: 1 },
             { key: 'head', textureKey: 'character-head-base', x: 0, y: -28, scale: 1 },
-            { key: 'face', textureKey: 'character-face-idle', x: 0, y: -28, scale: 1 },
             { key: 'eyes', textureKey: 'character-eyes-1', x: 0, y: -28, scale: 1 },
             { key: 'hair', textureKey: 'character-hair-default', x: 0, y: -33, scale: 1 },
             { key: 'helmet', textureKey: 'character-helmet-basic', x: 0, y: -36, scale: 1 },
@@ -314,8 +312,6 @@ export class CharacterRenderer {
             }
             if (layer.key === 'eyes') {
                 image.setDepth(10);
-            } else if (layer.key === 'face') {
-                image.setDepth(5);
             }
             if (typeof layer.alpha === 'number') {
                 image.setAlpha(layer.alpha);
@@ -369,6 +365,18 @@ export class CharacterRenderer {
         }
     }
 
+    private resolveEquipmentTextureKey(slot: LayerKey, fallbackTextureKey: string): string {
+        if ((this.animationState === 'jump' || this.animationState === 'doubleJump') && slot === 'top' && fallbackTextureKey === 'character-top-shirt-1') {
+            return 'character-top-shirt-1-jump';
+        }
+
+        if ((this.animationState === 'jump' || this.animationState === 'doubleJump') && slot === 'pants' && fallbackTextureKey === 'character-pants-1') {
+            return 'character-pants-1-jump';
+        }
+
+        return fallbackTextureKey;
+    }
+
     private updateEquipmentLayer(slot: LayerKey, item: EquipmentItem | null): void {
         const layer = this.layers.get(slot);
         if (!layer) {
@@ -382,9 +390,19 @@ export class CharacterRenderer {
             return;
         }
 
-        layer.image.setTexture(item.spriteKey);
+        const textureKey = this.resolveEquipmentTextureKey(slot, item.spriteKey);
+        layer.image.setTexture(textureKey);
         layer.image.setVisible(true);
         this.applyEquipmentRender(slot, item.render);
+    }
+
+    private syncDynamicEquipmentForAnimationState(): void {
+        if (this.character.equipment.top) {
+            this.updateEquipmentLayer('top', this.character.equipment.top);
+        }
+        if (this.character.equipment.pants) {
+            this.updateEquipmentLayer('pants', this.character.equipment.pants);
+        }
     }
 
     private resetLayerTransform(layerKey: LayerKey): void {
@@ -461,9 +479,10 @@ export class CharacterRenderer {
     }
 
     private applyAnimationState(time: number): void {
+        this.syncDynamicEquipmentForAnimationState();
+
         const effect = this.layers.get('effect')?.image;
         const weapon = this.layers.get('weapon')?.image;
-        const face = this.layers.get('face')?.image;
         const frontArm = this.layers.get('frontArm')?.image;
         const backArm = this.layers.get('backArm')?.image;
         const frontLeg = this.layers.get('frontLeg')?.image;
@@ -649,28 +668,12 @@ export class CharacterRenderer {
                 break;
         }
 
-        if (face) {
-            const faceKey =
-                nextExpression === 'smile'
-                    ? 'character-face-smile'
-                    : nextExpression === 'surprised'
-                        ? 'character-face-surprised'
-                        : nextExpression === 'hurt'
-                            ? 'character-face-hurt'
-                            : nextExpression === 'dead'
-                                ? 'character-face-dead'
-                                : 'character-face-idle';
-            face.setTexture(faceKey);
-            face.setScale(1);
-            face.setVisible(true);
-        }
-
         const eyes = this.layers.get('eyes')?.image;
         if (eyes) {
             eyes.setVisible(true);
-            eyes.setScale(1);
-            eyes.x = 0;
-            eyes.y = -28;
+            eyes.setScale(0.09);
+            eyes.x = 1;
+            eyes.y = -18;
             eyes.setDepth(1);
         }
 
