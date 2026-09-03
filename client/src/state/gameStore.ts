@@ -14,6 +14,7 @@ const initialState: GameState = {
     dialogueOpen: false,
     questOpen: false,
     deathOpen: false,
+    inventoryOpen: false,
     prompt: null,
     notification: null,
     levelUpMessage: null
@@ -51,6 +52,7 @@ function patchUi(patch: Partial<UiState>): void {
     nextUi.dialogueOpen === state.ui.dialogueOpen &&
     nextUi.questOpen === state.ui.questOpen &&
     nextUi.deathOpen === state.ui.deathOpen &&
+    nextUi.inventoryOpen === state.ui.inventoryOpen &&
     nextUi.prompt === state.ui.prompt &&
     nextUi.notification === state.ui.notification &&
     nextUi.levelUpMessage === state.ui.levelUpMessage
@@ -160,6 +162,12 @@ export const gameStore = {
   setDeathOpen(deathOpen: boolean) {
     patchUi({ deathOpen });
   },
+  setInventoryOpen(inventoryOpen: boolean) {
+    patchUi({ inventoryOpen });
+  },
+  toggleInventoryOpen() {
+    patchUi({ inventoryOpen: !state.ui.inventoryOpen });
+  },
   setNotification(notification: NotificationState | null) {
     patchUi({ notification });
   },
@@ -171,6 +179,7 @@ export const gameStore = {
       dialogueOpen: false,
       questOpen: false,
       deathOpen: false,
+      inventoryOpen: false,
       prompt: null,
       notification: null,
       levelUpMessage: null

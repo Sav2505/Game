@@ -9,6 +9,7 @@ export interface UiState {
   dialogueOpen: boolean;
   questOpen: boolean;
   deathOpen: boolean;
+  inventoryOpen: boolean;
   prompt: string | null;
   notification: NotificationState | null;
   levelUpMessage: string | null;
