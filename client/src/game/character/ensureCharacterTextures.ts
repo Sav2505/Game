@@ -357,7 +357,9 @@ export function ensureCharacterTextures(scene: Phaser.Scene): void {
   ensureImageTexture(scene, 'character-pants-1', '/assets/characters/player/pants/pants_1.png');
   ensureImageTexture(scene, 'character-pants-1-jump', '/assets/characters/player/pants/jump/pants_1-jump.png');
   ensureImageTexture(scene, 'character-shoes-1', '/assets/characters/player/shoes/shoes_1.png');
+  ensureImageTexture(scene, 'character-shoes-1-jump', '/assets/characters/player/shoes/jump/shoes_1-jump.png');
   ensureImageTexture(scene, 'character-gloves-1', '/assets/characters/player/gloves/gloves_1.png');
+  ensureImageTexture(scene, 'character-gloves-1-jump', '/assets/characters/player/gloves/jump/gloves_1-jump.png');
   ensureImageTexture(scene, 'character-eyes-1', '/assets/characters/player/face/eyes/eyes_1.png');
   ensureBodySpriteSheetTexture(
     scene,

@@ -9,7 +9,7 @@ export const PLAYER_CONFIG = {
     jumpForce: 600,
     doubleJumpMultiplier: 1.0,
     walkAnimationDelayMs: 90,
-    gravity: 550,
+    gravity: 580,
     maxHp: 100,
     attackDamage: 20,
     attackCooldown: 520,

@@ -63,72 +63,6 @@ function drawLeg(graphics) {
     graphics.fillStyle(0xd4a57e, 0.72);
     graphics.fillRoundedRect(46, 31, 4, 18, 2);
 }
-function drawFaceIdle(graphics) {
-    graphics.clear();
-    graphics.fillStyle(0x2e221b, 1);
-    graphics.fillCircle(42, 47, 2.1);
-    graphics.fillCircle(54, 47, 2.1);
-    graphics.fillStyle(0xffffff, 0.65);
-    graphics.fillCircle(42, 46, 0.9);
-    graphics.fillCircle(54, 46, 0.9);
-    graphics.fillStyle(0xba8162, 0.65);
-    graphics.fillEllipse(48, 52, 5, 3);
-    graphics.fillStyle(0x7f4a3b, 1);
-    graphics.fillRoundedRect(44, 57, 8, 2, 1);
-}
-function drawFaceSmile(graphics) {
-    graphics.clear();
-    graphics.fillStyle(0x2e221b, 1);
-    graphics.fillCircle(42, 47, 2.1);
-    graphics.fillCircle(54, 47, 2.1);
-    graphics.fillStyle(0xffffff, 0.65);
-    graphics.fillCircle(42, 46, 0.9);
-    graphics.fillCircle(54, 46, 0.9);
-    graphics.fillStyle(0xba8162, 0.55);
-    graphics.fillEllipse(48, 52, 5, 3);
-    graphics.fillStyle(0x7f4a3b, 1);
-    graphics.fillRoundedRect(43, 57, 10, 2, 1);
-    graphics.fillStyle(0xe49ba0, 0.6);
-    graphics.fillEllipse(48, 58, 8, 2);
-}
-function drawFaceHurt(graphics) {
-    graphics.clear();
-    graphics.fillStyle(0x2e221b, 1);
-    graphics.fillEllipse(42, 47, 2.4, 1.8);
-    graphics.fillEllipse(54, 47, 2.4, 1.8);
-    graphics.fillStyle(0xba8162, 0.6);
-    graphics.fillEllipse(48, 52, 5.5, 3.4);
-    graphics.fillStyle(0x7f4a3b, 1);
-    graphics.fillRoundedRect(44, 58, 8, 2, 1);
-    graphics.fillStyle(0xd1707b, 0.55);
-    graphics.fillEllipse(36, 53, 5, 3);
-}
-function drawFaceSurprised(graphics) {
-    graphics.clear();
-    graphics.fillStyle(0x2e221b, 1);
-    graphics.fillCircle(42, 47, 2.4);
-    graphics.fillCircle(54, 47, 2.4);
-    graphics.fillStyle(0xffffff, 0.65);
-    graphics.fillCircle(42, 46, 1);
-    graphics.fillCircle(54, 46, 1);
-    graphics.fillStyle(0xba8162, 0.55);
-    graphics.fillEllipse(48, 52, 5, 3.2);
-    graphics.fillStyle(0x8a4e3d, 1);
-    graphics.fillCircle(48, 58, 2.2);
-}
-function drawFaceDead(graphics) {
-    graphics.clear();
-    graphics.fillStyle(0x6e5a53, 1);
-    graphics.fillRect(39, 46, 6, 2);
-    graphics.fillRect(51, 46, 6, 2);
-    graphics.fillStyle(0x9f7b6f, 0.6);
-    graphics.fillEllipse(48, 52, 5, 3);
-    graphics.fillStyle(0x7b635c, 1);
-    graphics.fillRoundedRect(44, 58, 8, 2, 1);
-}
-function drawFace(graphics) {
-    drawFaceIdle(graphics);
-}
 function drawHair(graphics) {
     graphics.clear();
     graphics.fillStyle(0xffffff, 1);
@@ -214,11 +148,6 @@ function drawEffect(graphics) {
     graphics.fillCircle(48, 48, 28);
     graphics.fillStyle(0xffffff, 0.44);
     graphics.fillCircle(48, 48, 16);
-}
-function drawShadow(graphics) {
-    graphics.clear();
-    graphics.fillStyle(0x000000, 0.28);
-    graphics.fillEllipse(48, 40, 68, 16);
 }
 function ensureImageTexture(scene, key, path) {
     if (scene.textures.exists(key)) {
@@ -353,7 +282,14 @@ export function ensureCharacterTextures(scene) {
     ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.stand, '/assets/characters/player/body/stand.png');
     ensureImageTexture(scene, 'character-helmet-hat-1', '/assets/characters/player/helmets/hat_1.png');
     ensureImageTexture(scene, 'character-top-shirt-1', '/assets/characters/player/tops/shirt_1.png');
+    ensureImageTexture(scene, 'character-top-shirt-1-jump', '/assets/characters/player/tops/jump/shirt_1-jump.png');
     ensureImageTexture(scene, 'character-pants-1', '/assets/characters/player/pants/pants_1.png');
+    ensureImageTexture(scene, 'character-pants-1-jump', '/assets/characters/player/pants/jump/pants_1-jump.png');
+    ensureImageTexture(scene, 'character-shoes-1', '/assets/characters/player/shoes/shoes_1.png');
+    ensureImageTexture(scene, 'character-shoes-1-jump', '/assets/characters/player/shoes/jump/shoes_1-jump.png');
+    ensureImageTexture(scene, 'character-gloves-1', '/assets/characters/player/gloves/gloves_1.png');
+    ensureImageTexture(scene, 'character-gloves-1-jump', '/assets/characters/player/gloves/jump/gloves_1-jump.png');
+    ensureImageTexture(scene, 'character-eyes-1', '/assets/characters/player/face/eyes/eyes_1.png');
     ensureBodySpriteSheetTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.walk, '/assets/characters/player/body/walk.png', PLAYER_CHARACTER_ANIMATION_TIMING.fallbackWalkFrameCount);
     ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.jump, '/assets/characters/player/body/jump.png');
     ensureImageTexture(scene, PLAYER_CHARACTER_BODY_TEXTURE_KEYS.hurt, '/assets/characters/player/body/hurt.png');
@@ -362,12 +298,6 @@ export function ensureCharacterTextures(scene) {
     generateTexture(scene, 'character-head-base', 96, 96, drawHead);
     generateTexture(scene, 'character-arm-base', 96, 96, drawArm);
     generateTexture(scene, 'character-leg-base', 96, 96, drawLeg);
-    generateTexture(scene, 'character-face-default', 96, 96, drawFace);
-    generateTexture(scene, 'character-face-idle', 96, 96, drawFaceIdle);
-    generateTexture(scene, 'character-face-smile', 96, 96, drawFaceSmile);
-    generateTexture(scene, 'character-face-hurt', 96, 96, drawFaceHurt);
-    generateTexture(scene, 'character-face-surprised', 96, 96, drawFaceSurprised);
-    generateTexture(scene, 'character-face-dead', 96, 96, drawFaceDead);
     generateTexture(scene, 'character-hair-default', 96, 96, drawHair);
     generateTexture(scene, 'character-top-basic', 96, 96, drawTop);
     generateTexture(scene, 'character-pants-basic', 96, 96, drawPants);
@@ -378,5 +308,4 @@ export function ensureCharacterTextures(scene) {
     generateTexture(scene, 'character-weapon-wooden-sword', 96, 96, drawWeapon);
     generateTexture(scene, 'character-accessory-star', 96, 96, drawAccessory);
     generateTexture(scene, 'character-effect-glow', 96, 96, drawEffect);
-    generateTexture(scene, 'character-shadow', 96, 64, drawShadow);
 }

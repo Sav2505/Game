@@ -6,9 +6,9 @@ export const DEMO_EQUIPMENT = {
         spriteKey: 'character-top-shirt-1',
         render: {
             coordinateSpace: 'characterCanvas512',
-            offsetX: -2,
-            offsetY: -92,
-            scale: 0.6
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1,
         },
         statBonuses: {
             defense: 1,
@@ -22,9 +22,9 @@ export const DEMO_EQUIPMENT = {
         spriteKey: 'character-pants-1',
         render: {
             coordinateSpace: 'characterCanvas512',
-            offsetX: -3,
-            offsetY: 50,
-            scale: 0.59
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1
         },
         statBonuses: {
             defense: 1,
@@ -38,9 +38,9 @@ export const DEMO_EQUIPMENT = {
         spriteKey: 'character-helmet-hat-1',
         render: {
             coordinateSpace: 'characterCanvas512',
-            offsetX: 1,
-            offsetY: -260,
-            scale: 0.29
+            offsetX: 0,
+            offsetY: -68,
+            scale: 0.8
         },
         statBonuses: {
             defense: 2,
@@ -62,8 +62,46 @@ export const DEMO_EQUIPMENT = {
         name: 'Leather Boots',
         type: 'shoes',
         spriteKey: 'character-shoes-basic',
+        render: {
+            coordinateSpace: 'characterCanvas512',
+            offsetX: 0,
+            offsetY: 30,
+            scale: 1,
+        },
         statBonuses: {
             dexterity: 2,
+            defense: 1
+        }
+    },
+    shoes1: {
+        id: 'shoes-1',
+        name: 'Shoes 1',
+        type: 'shoes',
+        spriteKey: 'character-shoes-1',
+        render: {
+            coordinateSpace: 'characterCanvas512',
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1,
+        },
+        statBonuses: {
+            dexterity: 3,
+            defense: 2,
+        }
+    },
+    leatherGloves: {
+        id: 'gloves-1',
+        name: 'Gloves 1',
+        type: 'gloves',
+        spriteKey: 'character-gloves-1',
+        render: {
+            coordinateSpace: 'characterCanvas512',
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1,
+        },
+        statBonuses: {
+            dexterity: 1,
             defense: 1
         }
     },
@@ -84,6 +122,8 @@ export const DEMO_EQUIPMENT_ORDER = [
     'ironHelmet',
     'woodenSword',
     'leatherBoots',
+    'shoes1',
+    'leatherGloves',
     'redCape'
 ];
 export const DEMO_EQUIPMENT_SLOT_MAP = {
@@ -91,7 +131,8 @@ export const DEMO_EQUIPMENT_SLOT_MAP = {
     pants: DEMO_EQUIPMENT.basicPants,
     helmet: DEMO_EQUIPMENT.ironHelmet,
     weapon: DEMO_EQUIPMENT.woodenSword,
-    shoes: DEMO_EQUIPMENT.leatherBoots,
+    shoes: DEMO_EQUIPMENT.shoes1,
+    gloves: DEMO_EQUIPMENT.leatherGloves,
     cape: DEMO_EQUIPMENT.redCape
 };
 export const DEFAULT_CHARACTER_APPEARANCE = {
@@ -116,7 +157,9 @@ export const DEFAULT_CHARACTER_STATS = {
 export const DEFAULT_CHARACTER_EQUIPMENT = {
     helmet: DEMO_EQUIPMENT.ironHelmet,
     top: DEMO_EQUIPMENT.basicShirt,
-    pants: DEMO_EQUIPMENT.basicPants
+    pants: DEMO_EQUIPMENT.basicPants,
+    shoes: DEMO_EQUIPMENT.shoes1,
+    gloves: DEMO_EQUIPMENT.leatherGloves
 };
 export function createDefaultPlayerCharacter() {
     return {

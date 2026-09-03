@@ -62,8 +62,10 @@ export const characterStore = {
                     : slot === 'weapon'
                         ? 'woodenSword'
                         : slot === 'shoes'
-                            ? 'leatherBoots'
-                            : 'redCape'];
+                            ? 'shoes1'
+                            : slot === 'gloves'
+                                ? 'leatherGloves'
+                                : 'redCape'];
         const currentItem = state.character.equipment[slot] ?? null;
         characterStore.setEquipment(slot, currentItem ? null : demoItem);
     },

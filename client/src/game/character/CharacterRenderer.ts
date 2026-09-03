@@ -366,12 +366,26 @@ export class CharacterRenderer {
     }
 
     private resolveEquipmentTextureKey(slot: LayerKey, fallbackTextureKey: string): string {
-        if ((this.animationState === 'jump' || this.animationState === 'doubleJump') && slot === 'top' && fallbackTextureKey === 'character-top-shirt-1') {
+        const isJumping = this.animationState === 'jump' || this.animationState === 'doubleJump';
+
+        if (isJumping && slot === 'top' && fallbackTextureKey === 'character-top-shirt-1') {
             return 'character-top-shirt-1-jump';
         }
 
-        if ((this.animationState === 'jump' || this.animationState === 'doubleJump') && slot === 'pants' && fallbackTextureKey === 'character-pants-1') {
+        if (isJumping && slot === 'pants' && fallbackTextureKey === 'character-pants-1') {
             return 'character-pants-1-jump';
+        }
+
+        if (isJumping && slot === 'gloves' && fallbackTextureKey === 'character-gloves-1') {
+            return 'character-gloves-1-jump';
+        }
+
+        if (isJumping && slot === 'frontShoe' && fallbackTextureKey === 'character-shoes-1') {
+            return 'character-shoes-1-jump';
+        }
+
+        if (isJumping && slot === 'backShoe' && fallbackTextureKey === 'character-shoes-1') {
+            return 'character-shoes-1-jump';
         }
 
         return fallbackTextureKey;
@@ -402,6 +416,13 @@ export class CharacterRenderer {
         }
         if (this.character.equipment.pants) {
             this.updateEquipmentLayer('pants', this.character.equipment.pants);
+        }
+        if (this.character.equipment.gloves) {
+            this.updateEquipmentLayer('gloves', this.character.equipment.gloves);
+        }
+        if (this.character.equipment.shoes) {
+            this.updateEquipmentLayer('backShoe', this.character.equipment.shoes);
+            this.updateEquipmentLayer('frontShoe', this.character.equipment.shoes);
         }
     }
 
